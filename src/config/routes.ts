@@ -1,0 +1,20 @@
+export const routes = {
+  home: '/',
+  documents: (id: string) => `/documents/${id}`,
+  subjects: '/subjects',
+  subjectDetail: (id: string) => `/subjects/${id}`,
+  allMajors: '/all-majors',
+  examPrep: '/exam-prep',
+  feedback: '/feedback',
+  uploadGuide: '/upload-guide',
+  privacy: '/privacy',
+  terms: '/terms',
+  admin: {
+    login: '/admin/login',
+    dashboard: '/admin/dashboard',
+    portal: '/admin',
+    notifications: '/admin/notifications',
+    subjectUpload: '/admin/subjects/upload',
+    examPrepUpload: '/admin/exam-prep/upload',
+  },
+} as const;
