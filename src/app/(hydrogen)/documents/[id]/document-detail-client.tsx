@@ -130,7 +130,7 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
   const previewUrl = getPreviewUrl();
 
   return (
-    <div className="arionear-container py-10 md:py-16">
+    <div className="arionear-container py-6 md:py-10">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter mb-10">
         <Link href="/home" className="hover:text-ink transition-colors">Trang chủ</Link>

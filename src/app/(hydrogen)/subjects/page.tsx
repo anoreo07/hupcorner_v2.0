@@ -9,7 +9,7 @@ export const revalidate = 0;
 export default async function SubjectsPage() {
   const subjects = await getSubjects();
   return (
-    <div className="editorial-container py-6 md:py-10">
+    <div className="editorial-container py-4 md:py-6">
       <SubjectsList initialSubjects={subjects} />
     </div>
   );

@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export default function AllMajorsPage() {
   return (
     <Suspense fallback={
-      <div className="editorial-container py-6 md:py-10">
+      <div className="editorial-container py-4 md:py-6">
         <div className="mb-12">
           <div className="h-8 w-48 bg-ink/5 animate-pulse mb-2" />
           <div className="h-5 w-72 bg-ink/5 animate-pulse" />

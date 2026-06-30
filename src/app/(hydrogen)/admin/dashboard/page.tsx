@@ -97,7 +97,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="min-h-screen bg-paper">
-      <div className="arionear-container py-10 md:py-16">
+      <div className="arionear-container py-6 md:py-10">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10">
           <div>
             <Link href="/admin" className="btn-meta mb-2 inline-flex"><ArrowLeft size={14} strokeWidth={1.5} /> Quay lại</Link>

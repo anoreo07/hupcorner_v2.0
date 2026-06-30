@@ -33,7 +33,7 @@ export default function FeedbackClient() {
   };
 
   return (
-    <div className="arionear-container py-10 md:py-16">
+    <div className="arionear-container py-6 md:py-10">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
         {/* Form */}
         <section className="lg:col-span-5 space-y-8 lg:sticky lg:top-24 self-start">

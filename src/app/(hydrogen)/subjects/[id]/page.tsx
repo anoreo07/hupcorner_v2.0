@@ -28,7 +28,7 @@ export default async function SubjectDetailPage({ params }: { params: Promise<{ 
   const nonOutlineDocs = documents.filter(doc => doc.document_type !== 'OUTLINE');
 
   return (
-    <div className="arionear-container py-10 md:py-16">
+    <div className="arionear-container py-6 md:py-10">
       <Link href="/subjects" className="btn-meta mb-10 inline-flex">
         <ArrowLeft size={14} strokeWidth={1.5} /> Quay lại môn học
       </Link>

@@ -19,7 +19,7 @@ export default function HomePageClient({ featuredDocuments, recentDocuments, maj
     <div>
       {/* HERO SECTION — white bg */}
       <section className="border-b border-ink">
-        <div className="arionear-container py-16 md:py-24">
+        <div className="arionear-container py-10 md:py-16">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
             {/* Left: text */}
             <div className="max-w-xl">
@@ -58,7 +58,7 @@ export default function HomePageClient({ featuredDocuments, recentDocuments, maj
 
       {/* FEATURED DOCUMENTS — alt bg */}
       <section className="section-alt border-b border-ink">
-        <div className="arionear-container py-20 md:py-28">
+        <div className="arionear-container py-14 md:py-20">
           <div className="flex items-end justify-between mb-12">
             <div>
               <p className="label-red mb-3">TÀI LIỆU CHỌN LỌC</p>
@@ -90,7 +90,7 @@ export default function HomePageClient({ featuredDocuments, recentDocuments, maj
 
       {/* HOW THE PRESS RUNS — black bg */}
       <section className="section-black border-b border-ink/10">
-        <div className="arionear-container py-20 md:py-28">
+        <div className="arionear-container py-14 md:py-20">
           <div className="flex items-end justify-between mb-16">
             <p className="label-red">QUY TRÌNH</p>
             <Link href="/feedback" className="btn-meta text-paper/60 hover:text-paper hidden md:flex">
@@ -143,7 +143,7 @@ export default function HomePageClient({ featuredDocuments, recentDocuments, maj
 
       {/* RECENT UPLOADS — white bg */}
       <section className="border-b border-ink">
-        <div className="arionear-container py-20 md:py-28">
+        <div className="arionear-container py-14 md:py-20">
           <div className="flex items-end justify-between mb-12">
             <div>
               <p className="label-red mb-3">MỚI CẬP NHẬT</p>
@@ -184,6 +184,13 @@ export default function HomePageClient({ featuredDocuments, recentDocuments, maj
 function VietnamClock() {
   const [angles, setAngles] = useState({ h: 0, m: 0, s: 0 });
   const [digital, setDigital] = useState('00:00:00');
+  const [today, setToday] = useState('');
+
+  useEffect(() => {
+    setToday(new Date().toLocaleDateString('vi-VN', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    }));
+  }, []);
 
   useEffect(() => {
     function tick() {
@@ -261,6 +268,11 @@ function VietnamClock() {
       <p className="font-serif font-bold text-heading-2 text-ink leading-none tracking-tight">
         {digital}
       </p>
+      {today && (
+        <p className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">
+          {today}
+        </p>
+      )}
       <p className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">
         GMT+7 &bull; ASIA/HO_CHI_MINH
       </p>

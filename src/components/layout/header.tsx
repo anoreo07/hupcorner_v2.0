@@ -20,10 +20,6 @@ export function Header() {
   const pathname = usePathname();
   const { openModal } = useUploadModal();
 
-  const today = new Date().toLocaleDateString('vi-VN', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-  });
-
   const isActive = (href: string) => {
     if (href === '/home') return pathname === '/home' || pathname === '/';
     return pathname.startsWith(href);
@@ -31,15 +27,6 @@ export function Header() {
 
   return (
     <header className="border-b border-ink bg-paper">
-      {/* Masthead */}
-      <div className="arionear-container">
-        <div className="masthead">
-          <span>ẤN PHẨM HỌC THUẬT</span>
-          <span className="hidden md:block">{today}</span>
-          <span>TRƯỜNG ĐẠI HỌC DƯỢC HÀ NỘI</span>
-        </div>
-      </div>
-
       {/* Main nav */}
       <div className="arionear-container">
         <div className="flex items-center justify-between h-16 md:h-20">

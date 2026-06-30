@@ -75,7 +75,7 @@ export default function AllMajorsContent() {
   };
 
   return (
-    <div className="arionear-container py-10 md:py-16">
+    <div className="arionear-container py-6 md:py-10">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
         <div>
           <p className="label-red mb-3">TRA CỨU TÀI LIỆU</p>

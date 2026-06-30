@@ -20,7 +20,7 @@ export default function SubjectsList({ initialSubjects }: { initialSubjects: Sub
   const currentItems = filteredSubjects.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="arionear-container py-10 md:py-16">
+    <div className="arionear-container py-6 md:py-10">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
         <div>
           <p className="label-red mb-3">HỆ THỐNG MÔN HỌC</p>

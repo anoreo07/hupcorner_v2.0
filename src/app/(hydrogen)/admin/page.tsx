@@ -42,7 +42,7 @@ export default function AdminPortalPage() {
 
   return (
     <div className="min-h-screen bg-paper">
-      <div className="arionear-container py-10 md:py-16">
+      <div className="arionear-container py-6 md:py-10">
         <div className="flex items-center justify-between mb-12">
           <div>
             <p className="label-red mb-2">QUẢN TRỊ HỆ THỐNG</p>

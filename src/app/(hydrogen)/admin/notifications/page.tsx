@@ -62,7 +62,7 @@ export default function AdminNotificationsPage() {
 
   return (
     <div className="min-h-screen bg-paper">
-      <div className="arionear-container py-10 md:py-16">
+      <div className="arionear-container py-6 md:py-10">
         <Link href="/admin" className="btn-meta mb-8 inline-flex"><ArrowLeft size={14} strokeWidth={1.5} /> Quay lại</Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">

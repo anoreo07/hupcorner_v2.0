@@ -36,7 +36,7 @@ export default function ExamPrepPage() {
   );
 
   return (
-    <div className="arionear-container py-10 md:py-16">
+    <div className="arionear-container py-6 md:py-10">
       {/* Hero */}
       <section className="card p-10 md:p-14 mb-16">
         <div className="max-w-2xl">
