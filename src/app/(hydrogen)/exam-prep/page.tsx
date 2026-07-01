@@ -151,7 +151,7 @@ export default function ExamPrepPage() {
                   {loadingOutlines ? (
                     <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-2 border-ink/10 border-t-ink rounded-full animate-spin" /></div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {outlines.map((doc, i) => (<DocumentCard key={doc.id} doc={doc} index={i} />))}
                       {outlines.length === 0 && (
                         <div className="col-span-full card p-12 text-center">

@@ -103,13 +103,13 @@ export default function AllMajorsContent() {
 
       <section className="mt-10 min-h-[400px]">
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 opacity-30">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-30">
             {[1, 2, 3, 4, 5, 6].map(i => (
               <div key={i} className="border border-ink/10 p-6 h-72 animate-pulse" />
             ))}
           </div>
         ) : documents.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {documents.map((doc, i) => (
               <DocumentCard key={doc.id} doc={doc} index={i} />
             ))}
