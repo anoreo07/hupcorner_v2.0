@@ -76,7 +76,7 @@ export default async function SubjectDetailPage({ params }: { params: Promise<{ 
           </div>
 
           {nonOutlineDocs.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {nonOutlineDocs.map((doc, i) => (
                 <DocumentCard key={doc.id} doc={doc} index={i} />
               ))}

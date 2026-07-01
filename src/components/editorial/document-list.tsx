@@ -36,7 +36,7 @@ export function DocumentList({ documents, perPage = 12 }: DocumentListProps) {
         variants={{
           visible: { transition: { staggerChildren: 0.06, delayChildren: 0.1 } },
         }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
       >
         {paginated.map((doc) => (
           <motion.div

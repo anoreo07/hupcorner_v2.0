@@ -30,7 +30,7 @@ export function StarRating({ value, onChange, readonly = false, size = 20 }: Sta
             className={cn(
               'transition-all duration-200',
               readonly ? 'cursor-default' : 'cursor-pointer hover:scale-110',
-              filled ? 'text-ink' : 'text-ink/20',
+              filled ? 'text-[#E8B830]' : 'text-ink/20',
             )}
             role="radio"
             aria-checked={star <= value}
