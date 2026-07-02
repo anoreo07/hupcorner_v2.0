@@ -97,7 +97,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
         <div className="flex items-center gap-3">
           <button
             onClick={openModal}
-            className="flex items-center gap-2 border-2 border-ink bg-paper px-3 py-1.5 text-caption font-sans font-medium uppercase tracking-[0.08em] hover:bg-ink hover:text-paper transition-colors"
+            className="flex items-center gap-2 bg-ink text-paper px-3 py-1.5 text-caption font-sans font-medium uppercase tracking-[0.08em] hover:bg-ink/90 transition-colors"
           >
             <Upload size={14} /> Tải lên
           </button>

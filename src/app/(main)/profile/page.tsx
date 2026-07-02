@@ -5,8 +5,9 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Camera, Bookmark as BookmarkIcon, Download, Upload, AlertTriangle, Loader2, LogOut, Save } from 'lucide-react';
 import { getCurrentUser, updateProfile, deleteAccount, getBookmarks, getDownloadHistory } from '@/lib/user';
+import { getDocumentsByUser } from '@/lib/supabase';
 import { uploadFileWithChunking, needsChunking } from '@/utils/file-chunking';
-import type { User, Bookmark, DownloadRecord } from '@/types/database';
+import type { User, Bookmark, DownloadRecord, DocumentWithMajor } from '@/types/database';
 import dayjs from 'dayjs';
 import toast from 'react-hot-toast';
 
@@ -33,6 +34,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<TabKey>('bookmarks');
   const [bookmarks, setBookmarks] = useState<any[]>([]);
   const [downloads, setDownloads] = useState<any[]>([]);
+  const [uploads, setUploads] = useState<DocumentWithMajor[]>([]);
   const [error, setError] = useState('');
 
   // Edit form
@@ -69,6 +71,7 @@ export default function ProfilePage() {
       setEditDescription(userData.description || '');
       loadBookmarks(userData.id);
       loadDownloads(userData.id);
+      loadUploads(userData.id);
     } catch {
       setError('Không thể tải thông tin người dùng');
     } finally {
@@ -84,6 +87,11 @@ export default function ProfilePage() {
   const loadDownloads = async (userId: string) => {
     const data = await getDownloadHistory(userId);
     setDownloads(data);
+  };
+
+  const loadUploads = async (userId: string) => {
+    const data = await getDocumentsByUser(userId);
+    setUploads(data);
   };
 
   const handleSaveProfile = async () => {
@@ -167,7 +175,7 @@ export default function ProfilePage() {
   const tabs: { key: TabKey; label: string; count: number }[] = [
     { key: 'bookmarks', label: 'Bookmarks', count: bookmarks.length },
     { key: 'downloads', label: 'Lịch sử tải', count: downloads.length },
-    { key: 'uploads', label: 'Đã đóng góp', count: 0 },
+    { key: 'uploads', label: 'Đã đóng góp', count: uploads.length },
   ];
 
   return (
@@ -387,10 +395,27 @@ export default function ProfilePage() {
                 )}
 
                 {activeTab === 'uploads' && (
-                  <div className="text-center py-10">
-                    <Upload size={32} className="mx-auto text-ink-lighter/40 mb-3" />
-                    <p className="font-sans text-body-sm text-ink-lighter">Bạn chưa đóng góp tài liệu nào</p>
-                  </div>
+                  uploads.length === 0 ? (
+                    <div className="text-center py-10">
+                      <Upload size={32} className="mx-auto text-ink-lighter/40 mb-3" />
+                      <p className="font-sans text-body-sm text-ink-lighter">Bạn chưa đóng góp tài liệu nào</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {uploads.map((doc) => (
+                        <a
+                          key={doc.id}
+                          href={`/documents/${doc.id}`}
+                          className="block p-3 border border-ink/20 hover:border-ink transition-colors"
+                        >
+                          <p className="font-serif font-bold text-ink">{doc.title}</p>
+                          <p className="font-sans text-caption text-ink-lighter">
+                            {doc.status === 'APPROVED' ? 'Đã duyệt' : doc.status === 'REJECTED' ? 'Bị từ chối' : 'Chờ duyệt'}
+                          </p>
+                        </a>
+                      ))}
+                    </div>
+                  )
                 )}
               </div>
             </div>

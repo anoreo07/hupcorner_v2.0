@@ -15,7 +15,6 @@ export function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Step 1
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,12 +22,10 @@ export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // Step 2
   const [username, setUsername] = useState('');
   const [role, setRole] = useState<'USER' | 'PHARMACY_STUDENT'>('USER');
   const [description, setDescription] = useState('');
 
-  // Step 3 (pharmacy student only)
   const [studentFullName, setStudentFullName] = useState('');
   const [studentId, setStudentId] = useState('');
   const [studentCardImage, setStudentCardImage] = useState('');
@@ -103,7 +100,6 @@ export function RegisterForm() {
 
       const createdUser = await res.json();
 
-      // If pharmacy student, submit verification
       if (role === 'PHARMACY_STUDENT') {
         const verifyRes = await fetch('/api/auth/student-verification', {
           method: 'POST',
@@ -123,7 +119,6 @@ export function RegisterForm() {
         }
       }
 
-      // Auto login
       const result = await signIn('credentials', {
         email,
         password,
@@ -163,24 +158,24 @@ export function RegisterForm() {
   return (
     <div className="space-y-5">
       {/* Step indicator */}
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-3 mb-6">
         {([1, 2, 3] as Step[]).map((s) => (
-          <div key={s} className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-full border-2 border-ink flex items-center justify-center font-mono text-meta font-bold ${
-              step >= s ? 'bg-ink text-paper' : 'bg-paper text-ink'
+          <div key={s} className="flex items-center gap-3">
+            <span className={`font-mono text-meta uppercase tracking-[0.15em] ${
+              step >= s ? 'text-red' : 'text-ink-lighter'
             }`}>
-              {step > s ? <Check size={14} /> : s}
-            </div>
-            {s < 3 && <div className={`w-8 h-0.5 ${step > s ? 'bg-ink' : 'bg-ink/20'}`} />}
+              {step > s ? '✓' : `0${s}`}
+            </span>
+            {s < 3 && <div className={`w-8 h-px ${step > s ? 'bg-red' : 'bg-ink/20'}`} />}
           </div>
         ))}
       </div>
 
       <div>
-        <h2 className="font-serif text-3xl md:text-4xl font-bold text-ink tracking-tight">
-          {step === 1 ? 'TẠO TÀI KHOẢN' : step === 2 ? 'HOÀN TẤT HỒ SƠ' : 'XÁC NHẬN SINH VIÊN'}
+        <h2 className="font-serif text-heading-3 font-bold text-ink tracking-tight">
+          {step === 1 ? 'Tạo tài khoản' : step === 2 ? 'Hoàn tất hồ sơ' : 'Xác nhận sinh viên'}
         </h2>
-        <p className="font-sans text-body-sm text-ink-lighter mt-1">
+        <p className="subheading mt-1">
           {step === 1
             ? 'Đăng ký miễn phí trong vài giây'
             : step === 2
@@ -190,7 +185,7 @@ export function RegisterForm() {
       </div>
 
       {error && (
-        <div className="border-2 border-red px-4 py-3 bg-red/5">
+        <div className="border border-red px-4 py-3 bg-red/5">
           <p className="font-sans text-body-sm text-red font-medium">{error}</p>
         </div>
       )}
@@ -198,7 +193,7 @@ export function RegisterForm() {
       {step === 1 && (
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <label htmlFor="name" className="font-mono text-meta uppercase tracking-widest text-ink-lighter block">
+            <label htmlFor="name" className="label-red block">
               Họ và tên
             </label>
             <input
@@ -208,12 +203,12 @@ export function RegisterForm() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Nguyễn Văn A"
               required
-              className="w-full border border-ink bg-gray-100/50 px-4 py-3 text-body-sm text-ink placeholder:text-ink-muted focus:border-ink focus:outline-none transition-colors"
+              className="input-field"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="reg-email" className="font-mono text-meta uppercase tracking-widest text-ink-lighter block">
+            <label htmlFor="reg-email" className="label-red block">
               Email học viên
             </label>
             <input
@@ -223,12 +218,12 @@ export function RegisterForm() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
               required
-              className="w-full border border-ink bg-gray-100/50 px-4 py-3 text-body-sm text-ink placeholder:text-ink-muted focus:border-ink focus:outline-none transition-colors"
+              className="input-field"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="reg-password" className="font-mono text-meta uppercase tracking-widest text-ink-lighter block">
+            <label htmlFor="reg-password" className="label-red block">
               Mật khẩu (tối thiểu 8 ký tự)
             </label>
             <div className="relative">
@@ -240,7 +235,7 @@ export function RegisterForm() {
                 placeholder="••••••••"
                 required
                 minLength={8}
-                className="w-full border border-ink bg-gray-100/50 px-4 py-3 text-body-sm text-ink placeholder:text-ink-muted focus:border-ink focus:outline-none transition-colors pr-10"
+                className="input-field pr-10"
               />
               <button
                 type="button"
@@ -253,7 +248,7 @@ export function RegisterForm() {
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="confirm-password" className="font-mono text-meta uppercase tracking-widest text-ink-lighter block">
+            <label htmlFor="confirm-password" className="label-red block">
               Xác nhận mật khẩu
             </label>
             <div className="relative">
@@ -264,7 +259,7 @@ export function RegisterForm() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full border border-ink bg-gray-100/50 px-4 py-3 text-body-sm text-ink placeholder:text-ink-muted focus:border-ink focus:outline-none transition-colors pr-10"
+                className="input-field pr-10"
               />
               <button
                 type="button"
@@ -279,7 +274,7 @@ export function RegisterForm() {
           <button
             type="button"
             onClick={handleNextToStep2}
-            className="w-full flex items-center justify-center gap-2 bg-ink text-paper px-7 py-3.5 text-body-sm font-sans font-medium uppercase tracking-[0.08em] shadow-[6px_6px_0px_0px_#7C3AED] hover:shadow-[4px_4px_0px_0px_#7C3AED] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+            className="btn-primary w-full"
           >
             Tiếp tục <ArrowRight size={16} />
           </button>
@@ -289,7 +284,7 @@ export function RegisterForm() {
       {step === 2 && (
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <label htmlFor="username" className="font-mono text-meta uppercase tracking-widest text-ink-lighter block">
+            <label htmlFor="username" className="label-red block">
               Username
             </label>
             <input
@@ -299,19 +294,19 @@ export function RegisterForm() {
               onChange={(e) => setUsername(e.target.value)}
               placeholder="nguyenvan_a"
               required
-              className="w-full border border-ink bg-gray-100/50 px-4 py-3 text-body-sm text-ink placeholder:text-ink-muted focus:border-ink focus:outline-none transition-colors"
+              className="input-field"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="font-mono text-meta uppercase tracking-widest text-ink-lighter block">
+            <label className="label-red block">
               Vai trò của bạn
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setRole('USER')}
-                className={`p-4 border-2 text-left transition-all ${
+                className={`p-4 border text-left transition-all ${
                   role === 'USER'
                     ? 'border-ink bg-ink text-paper'
                     : 'border-ink/30 bg-paper text-ink hover:border-ink'
@@ -323,7 +318,7 @@ export function RegisterForm() {
               <button
                 type="button"
                 onClick={() => setRole('PHARMACY_STUDENT')}
-                className={`p-4 border-2 text-left transition-all ${
+                className={`p-4 border text-left transition-all ${
                   role === 'PHARMACY_STUDENT'
                     ? 'border-ink bg-ink text-paper'
                     : 'border-ink/30 bg-paper text-ink hover:border-ink'
@@ -336,7 +331,7 @@ export function RegisterForm() {
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="desc" className="font-mono text-meta uppercase tracking-widest text-ink-lighter block">
+            <label htmlFor="desc" className="label-red block">
               Mô tả bản thân (không bắt buộc)
             </label>
             <textarea
@@ -345,7 +340,7 @@ export function RegisterForm() {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Giới thiệu ngắn về bản thân..."
               rows={3}
-              className="w-full border border-ink bg-gray-100/50 px-4 py-3 text-body-sm text-ink placeholder:text-ink-muted focus:border-ink focus:outline-none transition-colors resize-none"
+              className="input-field resize-none"
             />
           </div>
 
@@ -353,7 +348,7 @@ export function RegisterForm() {
             type="button"
             onClick={handleNextToStep3}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-ink text-paper px-7 py-3.5 text-body-sm font-sans font-medium uppercase tracking-[0.08em] shadow-[6px_6px_0px_0px_#7C3AED] hover:shadow-[4px_4px_0px_0px_#7C3AED] hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50"
+            className="btn-primary w-full disabled:opacity-50"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : null}
             {role === 'PHARMACY_STUDENT' ? 'Xác nhận sinh viên →' : 'Hoàn tất đăng ký →'}
@@ -363,7 +358,7 @@ export function RegisterForm() {
 
       {step === 3 && (
         <div className="space-y-4">
-          <div className="p-4 border-2 border-yellow bg-yellow/10">
+          <div className="border border-red/30 bg-red/5 p-4">
             <p className="font-sans text-body-sm text-ink">
               Vui lòng cung cấp thông tin để xác nhận bạn là sinh viên trường Đại học Dược. 
               Dữ liệu của bạn sẽ được admin xem xét và duyệt thủ công.
@@ -371,7 +366,7 @@ export function RegisterForm() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="font-mono text-meta uppercase tracking-widest text-ink-lighter block">
+            <label className="label-red block">
               Tên sinh viên
             </label>
             <input
@@ -379,12 +374,12 @@ export function RegisterForm() {
               value={studentFullName}
               onChange={(e) => setStudentFullName(e.target.value)}
               placeholder="Nguyễn Văn A"
-              className="w-full border border-ink bg-gray-100/50 px-4 py-3 text-body-sm text-ink placeholder:text-ink-muted focus:border-ink focus:outline-none transition-colors"
+              className="input-field"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="font-mono text-meta uppercase tracking-widest text-ink-lighter block">
+            <label className="label-red block">
               Mã sinh viên
             </label>
             <input
@@ -392,12 +387,12 @@ export function RegisterForm() {
               value={studentId}
               onChange={(e) => setStudentId(e.target.value)}
               placeholder="21010001"
-              className="w-full border border-ink bg-gray-100/50 px-4 py-3 text-body-sm text-ink placeholder:text-ink-muted focus:border-ink focus:outline-none transition-colors"
+              className="input-field"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="font-mono text-meta uppercase tracking-widest text-ink-lighter block">
+            <label className="label-red block">
               Ảnh thẻ sinh viên (URL)
             </label>
             <input
@@ -405,7 +400,7 @@ export function RegisterForm() {
               value={studentCardImage}
               onChange={(e) => setStudentCardImage(e.target.value)}
               placeholder="https://example.com/student-card.jpg"
-              className="w-full border border-ink bg-gray-100/50 px-4 py-3 text-body-sm text-ink placeholder:text-ink-muted focus:border-ink focus:outline-none transition-colors"
+              className="input-field"
             />
           </div>
 
@@ -413,7 +408,7 @@ export function RegisterForm() {
             type="button"
             onClick={handleStep3Submit}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-ink text-paper px-7 py-3.5 text-body-sm font-sans font-medium uppercase tracking-[0.08em] shadow-[6px_6px_0px_0px_#7C3AED] hover:shadow-[4px_4px_0px_0px_#7C3AED] hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50"
+            className="btn-primary w-full disabled:opacity-50"
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
             {loading ? 'Đang tạo tài khoản...' : 'Xác nhận & tạo tài khoản →'}
@@ -423,7 +418,7 @@ export function RegisterForm() {
 
       <p className="text-center font-sans text-body-sm text-ink-lighter">
         Đã có tài khoản?{' '}
-        <Link href="/login" className="text-blue-600 font-semibold hover:underline">
+        <Link href="/login" className="text-red font-semibold hover:underline">
           Đăng nhập
         </Link>
       </p>

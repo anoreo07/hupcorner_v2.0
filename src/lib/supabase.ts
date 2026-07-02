@@ -281,6 +281,16 @@ export async function getRelatedDocuments(doc: DocumentWithMajor): Promise<Docum
   return (data || []) as DocumentWithMajor[];
 }
 
+export async function getDocumentsByUser(userId: string): Promise<DocumentWithMajor[]> {
+  const { data, error } = await supabase
+    .from('documents')
+    .select('*, majors(*)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  if (error) return [];
+  return (data || []) as DocumentWithMajor[];
+}
+
 export async function getDocumentsBySubject(subjectId: string): Promise<DocumentWithMajor[]> {
   if (typeof window === 'undefined') {
     const { getSupabaseAdmin } = await import('./supabaseAdmin');

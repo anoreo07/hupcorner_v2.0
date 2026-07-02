@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { z } from 'zod';
 
@@ -20,22 +21,29 @@ const uploadSchema = z.object({
   file_size: z.number().default(0),
   mime_type: z.string().nullable().optional(),
   uploader_name: z.string().nullable().optional(),
-  uploader_note: z.string().nullable().optional(),
   status: z.enum(['PENDING', 'APPROVED', 'REJECTED']).default('PENDING'),
   view_count: z.number().default(0),
   download_count: z.number().default(0),
 });
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     const json = await req.json();
     const result = uploadSchema.safeParse(json);
     if (!result.success) {
       return NextResponse.json({ error: 'Validation failed', details: result.error.flatten().fieldErrors }, { status: 400 });
     }
 
+    const { uploader_name, ...rest } = result.data;
+    const dataToInsert: Record<string, any> = {
+      ...rest,
+      user_id: token?.sub || null,
+    };
+    if (uploader_name) dataToInsert.uploader_name = uploader_name;
+
     const supabaseAdmin = getSupabaseAdmin() as any;
-    const { data, error } = await supabaseAdmin.from('documents').insert(result.data).select().single();
+    const { data, error } = await supabaseAdmin.from('documents').insert(dataToInsert).select().single();
 
     if (error) return NextResponse.json({ error: error.message, code: error.code, details: error.details }, { status: 500 });
 

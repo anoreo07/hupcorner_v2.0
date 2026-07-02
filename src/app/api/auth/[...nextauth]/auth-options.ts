@@ -1,6 +1,8 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
+import FacebookProvider from 'next-auth/providers/facebook';
+import GithubProvider from 'next-auth/providers/github';
 import bcrypt from 'bcryptjs';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 
@@ -75,8 +77,72 @@ export const authOptions: NextAuthOptions = {
           }),
         ]
       : []),
+    ...(process.env.FACEBOOK_CLIENT_ID && process.env.FACEBOOK_CLIENT_SECRET
+      ? [
+          FacebookProvider({
+            clientId: process.env.FACEBOOK_CLIENT_ID,
+            clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
+          }),
+        ]
+      : []),
+    ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
+      ? [
+          GithubProvider({
+            clientId: process.env.GITHUB_CLIENT_ID,
+            clientSecret: process.env.GITHUB_CLIENT_SECRET,
+          }),
+        ]
+      : []),
   ],
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider && account.provider !== 'credentials' && account.provider !== 'admin-credentials') {
+        const email = user.email;
+        if (!email) return false;
+
+        const supabase = getSupabaseAdmin();
+        const { data: existingUser } = await (supabase.from('users') as any)
+          .select('id')
+          .eq('email', email)
+          .maybeSingle();
+
+        if (!existingUser) {
+          // Auto-register user in DB
+          let baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
+          if (!baseUsername) baseUsername = 'user';
+
+          let uniqueUsername = baseUsername;
+          let counter = 1;
+
+          while (true) {
+            const { data: checkUser } = await (supabase.from('users') as any)
+              .select('id')
+              .eq('username', uniqueUsername)
+              .maybeSingle();
+
+            if (!checkUser) break;
+            uniqueUsername = `${baseUsername}${counter}`;
+            counter++;
+          }
+
+          const { error: insertError } = await (supabase.from('users') as any)
+            .insert({
+              email,
+              name: user.name || uniqueUsername,
+              username: uniqueUsername,
+              avatar_url: user.image || null,
+              role: 'USER',
+              status: 'ACTIVE',
+            });
+
+          if (insertError) {
+            console.error('Failed to auto-register OAuth user in DB:', insertError);
+            return false;
+          }
+        }
+      }
+      return true;
+    },
     async jwt({ token, user, account }) {
       if (user) {
         token.role = (user as any).role;
@@ -85,7 +151,7 @@ export const authOptions: NextAuthOptions = {
         if ((user as any).avatar_url) token.avatar_url = (user as any).avatar_url;
         token.id = user.id;
       }
-      if (account?.provider === 'google') {
+      if (account?.provider && account.provider !== 'credentials' && account.provider !== 'admin-credentials') {
         const supabase = getSupabaseAdmin();
         const { data: raw } = await (supabase.from('users') as any)
           .select('*')

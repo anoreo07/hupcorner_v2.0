@@ -1,5 +1,8 @@
 import { Suspense } from 'react';
+import { metaObject } from '@/config/site.config';
 import AllMajorsContent from './all-majors-content';
+
+export const metadata = metaObject('Chuyên ngành');
 
 export const dynamic = 'force-dynamic';
 

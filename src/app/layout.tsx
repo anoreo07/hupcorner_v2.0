@@ -21,9 +21,6 @@ export default async function RootLayout({
 
   return (
     <html lang="vi" suppressHydrationWarning>
-      <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-      </head>
       <body className="min-h-screen flex flex-col" suppressHydrationWarning>
         <Providers session={session}>{children}</Providers>
       </body>

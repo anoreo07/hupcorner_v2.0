@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Download, ArrowLeft, FileText, ZoomIn, ZoomOut,
-  Maximize2, X, Verified, Bookmark, Share2, ChevronRight,
+  Maximize2, X, Verified, Bookmark, Share2, ChevronRight, MessageCircle, Trash2, LogIn,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { DocumentWithMajor } from '@/types/database';
@@ -15,6 +16,8 @@ import { supabase } from '@/lib/supabase';
 import { downloadFileParallel } from '@/utils/file-chunking';
 import { toast } from 'react-hot-toast';
 import { documentTypeLabels, documentTypeVariants } from '@/components/editorial/document-card';
+import { addBookmark, removeBookmark, recordDownload, getDocumentComments, addDocumentComment, deleteDocumentComment } from '@/lib/user';
+import type { DocumentComment, User } from '@/types/database';
 
 interface DocumentDetailClientProps {
   document: DocumentWithMajor;
@@ -22,6 +25,10 @@ interface DocumentDetailClientProps {
 }
 
 export default function DocumentDetailClient({ document, relatedDocuments }: DocumentDetailClientProps) {
+  const { data: session, status } = useSession();
+  const user = session?.user as (User & { id: string }) | undefined;
+  const isLoggedIn = status === 'authenticated' && !!user;
+
   const [zoom, setZoom] = useState(1);
   const [downloading, setDownloading] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(true);
@@ -30,6 +37,12 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [feedbackText, setFeedbackText] = useState('');
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
+  const [loginAction, setLoginAction] = useState('');
+  const [comments, setComments] = useState<(DocumentComment & { users?: User })[]>([]);
+  const [commentText, setCommentText] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(true);
   const lastIncrementedId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -42,6 +55,49 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
     lastIncrementedId.current = document.id;
     supabase.rpc('increment_view_count', { doc_id: document.id });
   }, [document.id]);
+
+  useEffect(() => {
+    loadComments();
+  }, [document.id]);
+
+  const loadComments = async () => {
+    setLoadingComments(true);
+    try {
+      const data = await getDocumentComments(document.id);
+      setComments(data);
+    } catch {
+      // silent
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  const requireLogin = (action: string) => {
+    if (!isLoggedIn) {
+      setLoginAction(action);
+      setShowLoginPopup(true);
+      return false;
+    }
+    return true;
+  };
+
+  const handleBookmark = async () => {
+    if (!requireLogin('bookmark')) return;
+    if (!user) return;
+    try {
+      if (bookmarked) {
+        await removeBookmark(user.id, document.id);
+        setBookmarked(false);
+        toast.success('Đã bỏ lưu tài liệu');
+      } else {
+        await addBookmark(user.id, document.id);
+        setBookmarked(true);
+        toast.success('Đã lưu tài liệu');
+      }
+    } catch {
+      toast.error('Không thể thực hiện thao tác');
+    }
+  };
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -92,6 +148,9 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
         window.open(data.publicUrl, '_blank');
       }
       await supabase.rpc('increment_download_count', { doc_id: document.id });
+      if (isLoggedIn && user) {
+        await recordDownload(user.id, document.id).catch(() => {});
+      }
       toast.success('Tải xuống hoàn tất!', { id: toastId });
     } catch {
       toast.error('Tải xuống thất bại.', { id: toastId });
@@ -120,6 +179,33 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
       toast.error(err.message || 'Gửi đánh giá thất bại');
     } finally {
       setSubmittingFeedback(false);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!requireLogin('bình luận')) return;
+    if (!commentText.trim() || !user) return;
+    setSubmittingComment(true);
+    try {
+      await addDocumentComment(document.id, user.id, commentText.trim());
+      setCommentText('');
+      await loadComments();
+      toast.success('Đã thêm bình luận');
+    } catch {
+      toast.error('Không thể thêm bình luận');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!user) return;
+    try {
+      await deleteDocumentComment(commentId, user.id);
+      await loadComments();
+      toast.success('Đã xoá bình luận');
+    } catch {
+      toast.error('Không thể xoá bình luận');
     }
   };
 
@@ -208,7 +294,7 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
           </button>
           <div className="w-px h-5 bg-ink/20 mx-1 hidden sm:block" />
           <button
-            onClick={() => setBookmarked(b => !b)}
+            onClick={handleBookmark}
             className={`p-2 transition-colors ${bookmarked ? 'text-red' : 'text-ink-lighter hover:text-ink'}`}
             title={bookmarked ? 'Đã lưu' : 'Lưu'}
           >
@@ -264,7 +350,77 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
         </section>
       )}
 
+      {/* Bình luận */}
+      <section className="mb-16 max-w-content">
+        <p className="label-red mb-3">BÌNH LUẬN</p>
+        <h2 className="section-heading mb-8">Thảo luận về tài liệu</h2>
 
+        {isLoggedIn ? (
+          <div className="flex gap-3 mb-8">
+            <textarea
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              className="input-field min-h-[80px]"
+              placeholder="Viết bình luận..."
+              rows={2}
+            />
+            <button
+              onClick={handleAddComment}
+              disabled={submittingComment || !commentText.trim()}
+              className="btn-primary shrink-0 self-end disabled:opacity-50"
+            >
+              {submittingComment ? '...' : 'Gửi'}
+            </button>
+          </div>
+        ) : (
+          <div className="border border-ink/20 p-6 text-center mb-8">
+            <p className="text-body-sm text-ink-lighter mb-3">Đăng nhập để tham gia thảo luận</p>
+            <Link href="/login" className="btn-outline inline-flex">
+              <LogIn size={14} /> Đăng nhập
+            </Link>
+          </div>
+        )}
+
+        {loadingComments ? (
+          <div className="text-center py-8">
+            <div className="w-6 h-6 border-2 border-ink/10 border-t-ink animate-spin mx-auto" />
+          </div>
+        ) : comments.length === 0 ? (
+          <p className="text-body-sm text-ink-lighter">Chưa có bình luận nào.</p>
+        ) : (
+          <div className="space-y-4">
+            {comments.map((comment) => (
+              <div key={comment.id} className="border border-ink/20 p-4">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 border border-ink bg-ink-lighter flex items-center justify-center">
+                      <span className="text-paper text-caption font-bold">
+                        {(comment.users?.name || '?').charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <span className="font-sans text-body-sm text-ink font-medium">
+                      {comment.users?.name || 'Người dùng'}
+                    </span>
+                    <span className="font-mono text-meta text-ink-lighter">
+                      {new Date(comment.created_at).toLocaleDateString('vi-VN')}
+                    </span>
+                  </div>
+                  {user && (comment as any).user_id === user.id && (
+                    <button
+                      onClick={() => handleDeleteComment(comment.id)}
+                      className="text-ink-lighter hover:text-red transition-colors"
+                      title="Xoá"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+                <p className="text-body-sm text-ink leading-relaxed">{comment.content}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Tài liệu liên quan */}
       <section className="mb-16 max-w-content">
@@ -331,6 +487,50 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
           {submittingFeedback ? 'Đang gửi...' : 'Gửi đánh giá'}
         </button>
       </section>
+
+      {/* Login Required Popup */}
+      <AnimatePresence>
+        {showLoginPopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40"
+            onClick={() => setShowLoginPopup(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-paper border border-ink p-8 max-w-sm w-full text-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-12 h-12 border border-ink bg-ink text-paper flex items-center justify-center mx-auto mb-4">
+                <LogIn size={20} />
+              </div>
+              <h3 className="font-serif text-heading-3 font-bold text-ink mb-2">Yêu cầu đăng nhập</h3>
+              <p className="text-body-sm text-ink-lighter mb-6">
+                Bạn cần đăng nhập để sử dụng tính năng <strong>{loginAction}</strong>.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Link
+                  href="/login"
+                  className="btn-primary"
+                  onClick={() => setShowLoginPopup(false)}
+                >
+                  Đăng nhập
+                </Link>
+                <button
+                  onClick={() => setShowLoginPopup(false)}
+                  className="btn-outline"
+                >
+                  Để sau
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Fullscreen Overlay */}
       <AnimatePresence>
