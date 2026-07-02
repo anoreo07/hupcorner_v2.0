@@ -2,12 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import Link from 'next/link';
 import { Dialog } from '@/components/ui/dialog';
 import { useUploadModal } from '@/hooks/use-upload-modal';
 import { useFileUploader } from '@/hooks/use-file-uploader';
 import { uploadDocument } from '@/lib/supabase';
-import { Upload, File, X, Check, AlertCircle, Loader2, LogIn } from 'lucide-react';
+import { Upload, File, X, Check, AlertCircle, Loader2 } from 'lucide-react';
 import type { DocumentType } from '@/types/database';
 
 type Step = 'upload' | 'form' | 'done';
@@ -95,7 +94,7 @@ export function UploadModal() {
         academic_year: academicYear || null,
         lecturer_name: lecturerName || null,
         description: description || null,
-        uploader_name: anonymous ? null : (user?.username || null),
+        uploader_name: isLoggedIn ? (anonymous ? 'Người dùng ẩn danh' : (user?.username || null)) : 'Người dùng ẩn danh',
       });
       setStep('done');
     } catch (err) {
@@ -114,27 +113,7 @@ export function UploadModal() {
       title={step === 'done' ? 'Tải lên thành công' : 'Tải lên tài liệu'}
       className="max-w-2xl"
     >
-      {step === 'upload' && !isLoggedIn && (
-        <div className="text-center py-8">
-          <div className="w-12 h-12 border border-ink bg-ink text-paper flex items-center justify-center mx-auto mb-4">
-            <LogIn size={20} />
-          </div>
-          <h3 className="font-serif text-heading-3 font-bold text-ink mb-2">Yêu cầu đăng nhập</h3>
-          <p className="text-body-sm text-ink-lighter mb-6">
-            Bạn cần đăng nhập để tải tài liệu lên.
-          </p>
-          <div className="flex gap-3 justify-center">
-            <Link href="/login" className="btn-primary" onClick={closeModal}>
-              Đăng nhập
-            </Link>
-            <button onClick={closeModal} className="btn-outline">
-              Để sau
-            </button>
-          </div>
-        </div>
-      )}
-
-      {step === 'upload' && isLoggedIn && (
+      {step === 'upload' && (
         <div className="space-y-6">
           <div
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -235,19 +214,27 @@ export function UploadModal() {
 
             <div className="col-span-2 space-y-1.5">
               <label className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">Người tải lên</label>
-              <div className="flex items-center gap-4">
-                <span className="text-body-sm text-ink font-medium py-3">
-                  {anonymous ? 'Ẩn danh' : `@${user?.username || 'user'}`}
-                </span>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={anonymous}
-                    onChange={(e) => setAnonymous(e.target.checked)}
-                    className="w-4 h-4 border border-ink"
-                  />
-                  <span className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">Ẩn danh</span>
-                </label>
+              <div className="flex items-center gap-4 py-3">
+                {isLoggedIn ? (
+                  <>
+                    <span className="text-body-sm text-ink font-medium">
+                      {anonymous ? 'Người dùng ẩn danh' : `@${user?.username || 'user'}`}
+                    </span>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={anonymous}
+                        onChange={(e) => setAnonymous(e.target.checked)}
+                        className="w-4 h-4 border border-ink"
+                      />
+                      <span className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">Ẩn danh</span>
+                    </label>
+                  </>
+                ) : (
+                  <span className="text-body-sm text-ink-lighter italic">
+                    Người dùng ẩn danh
+                  </span>
+                )}
               </div>
             </div>
           </div>
