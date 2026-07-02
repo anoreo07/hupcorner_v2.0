@@ -8,6 +8,7 @@ import { toast } from 'react-hot-toast';
 
 const modules = [
   { title: 'Kiểm duyệt tài liệu', description: 'Xem xét và phê duyệt tài liệu do sinh viên gửi lên.', href: '/admin/dashboard', label: 'Mô-đun chính' },
+  { title: 'Xác nhận sinh viên Dược', description: 'Duyệt yêu cầu xác nhận sinh viên trường Đại học Dược.', href: '/admin/verifications', label: 'Người dùng' },
   { title: 'Tải lên tài liệu môn học', description: 'Tải lên tài liệu đã duyệt vào các môn học.', href: '/admin/subjects/upload', label: 'Nội dung học thuật' },
   { title: 'Thông báo', description: 'Đăng thông báo hiển thị trên trang chủ.', href: '/admin/notifications', label: 'Truyền thông' },
   { title: 'Tải lên đề cương ôn thi', description: 'Tải lên đề cương ôn thi cho sinh viên.', href: '/admin/exam-prep/upload', label: 'Ôn thi' },

@@ -1,6 +1,8 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
 import bcrypt from 'bcryptjs';
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || '';
@@ -8,28 +10,21 @@ const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || '';
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
-      id: 'credentials',
+      id: 'admin-credentials',
       name: 'Admin Credentials',
       credentials: {
         username: { label: 'Username', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) {
-          return null;
-        }
-
-        if (credentials.username !== ADMIN_USERNAME) {
-          return null;
-        }
-
+        if (!credentials?.username || !credentials?.password) return null;
+        if (credentials.username !== ADMIN_USERNAME) return null;
         if (ADMIN_PASSWORD_HASH) {
           const isValid = await bcrypt.compare(credentials.password, ADMIN_PASSWORD_HASH);
           if (!isValid) return null;
         } else {
           if (credentials.password !== process.env.ADMIN_PASSWORD) return null;
         }
-
         return {
           id: '1',
           name: 'Administrator',
@@ -38,25 +33,90 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
+    CredentialsProvider({
+      id: 'credentials',
+      name: 'Email & Mật khẩu',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Mật khẩu', type: 'password' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
+        const supabase = getSupabaseAdmin();
+        const { data: raw } = await (supabase.from('users') as any)
+          .select('*')
+          .eq('email', credentials.email)
+          .single();
+        if (!raw) return null;
+        const user = raw as {
+          status: string; locked_until: string | null; password_hash: string | null;
+          id: string; email: string; name: string; role: string; username: string; avatar_url: string | null;
+        };
+        if (user.status === 'DELETED') return null;
+        if (user.status === 'LOCKED' && user.locked_until && new Date(user.locked_until) > new Date()) return null;
+        if (!user.password_hash) return null;
+        const isValid = await bcrypt.compare(credentials.password, user.password_hash);
+        if (!isValid) return null;
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          username: user.username,
+          avatar_url: user.avatar_url,
+        };
+      },
+    }),
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [
+          GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          }),
+        ]
+      : []),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.role = (user as any).role;
         token.name = user.name;
+        if ((user as any).username) token.username = (user as any).username;
+        if ((user as any).avatar_url) token.avatar_url = (user as any).avatar_url;
+        token.id = user.id;
+      }
+      if (account?.provider === 'google') {
+        const supabase = getSupabaseAdmin();
+        const { data: raw } = await (supabase.from('users') as any)
+          .select('*')
+          .eq('email', token.email!)
+          .single();
+        if (raw) {
+          const eu = raw as { role: string; username: string; avatar_url: string | null; id: string; name: string };
+          token.role = eu.role;
+          token.username = eu.username;
+          token.avatar_url = eu.avatar_url;
+          token.id = eu.id;
+          token.name = eu.name;
+        }
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).role = token.role;
-        (session.user as any).name = token.name;
+        (session.user as any).username = token.username;
+        (session.user as any).avatar_url = token.avatar_url;
+        (session.user as any).id = token.id;
+        session.user.name = token.name as string;
+        session.user.email = token.email as string;
       }
       return session;
     },
   },
   pages: {
-    signIn: '/admin/login',
+    signIn: '/login',
+    newUser: '/register',
   },
   session: {
     strategy: 'jwt',

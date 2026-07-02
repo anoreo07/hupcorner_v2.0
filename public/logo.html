@@ -1,0 +1,75 @@
+<div
+    style="display:flex;flex-direction:column;align-items:center;gap:1.5rem;padding:2.5rem 1rem;background:var(--surface-1);border-radius:12px;">
+    <h2 class="sr-only">Animated HUP Corner logo: serif wordmark in charcoal and brick red, with a looping heartbeat
+        pulse line and a small rotating capsule icon representing pharmacy</h2>
+
+    <div style="display:flex;align-items:baseline;gap:14px;font-family:var(--font-voice);">
+        <span style="font-size:56px;font-weight:500;color:#2b2622;letter-spacing:0.5px;">HUP</span>
+        <span style="display:inline-flex;align-items:center;gap:10px;">
+            <svg id="capsule" width="34" height="34" viewBox="0 0 34 34" style="transform-origin:17px 17px;">
+                <circle cx="17" cy="17" r="16" fill="none" stroke="#B5453B" stroke-width="1.5" />
+                <g transform="translate(17,17) rotate(-45)">
+                    <rect x="-11" y="-5" width="22" height="10" rx="5" fill="none" stroke="#B5453B"
+                        stroke-width="1.6" />
+                    <line x1="0" y1="-5" x2="0" y2="5" stroke="#B5453B" stroke-width="1.6" />
+                    <rect x="-11" y="-5" width="11" height="10" rx="5" fill="#B5453B" opacity="0.85" />
+                </g>
+            </svg>
+            <span style="font-size:56px;font-weight:500;color:#B5453B;letter-spacing:0.5px;">Corner</span>
+        </span>
+    </div>
+
+    <svg width="340" height="46" viewBox="0 0 340 46" style="overflow:visible;">
+        <line x1="0" y1="23" x2="340" y2="23" stroke="var(--border-strong)" stroke-width="1" />
+        <path id="pulseLine" d="M0,23 L120,23 L136,23 L148,4 L160,40 L172,10 L184,23 L200,23 L340,23" fill="none"
+            stroke="#B5453B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="600"
+            stroke-dashoffset="600" />
+    </svg>
+
+    <p style="font-size:12px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin:0;">Kho tài liệu
+        học thuật dược khoa</p>
+</div>
+
+<style>
+    #capsule {
+        animation: spin 6s linear infinite;
+    }
+
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    #pulseLine {
+        animation: draw 3.2s ease-in-out infinite;
+    }
+
+    @keyframes draw {
+        0% {
+            stroke-dashoffset: 600;
+        }
+
+        55% {
+            stroke-dashoffset: 0;
+        }
+
+        80% {
+            stroke-dashoffset: 0;
+            opacity: 1;
+        }
+
+        95% {
+            opacity: 0;
+        }
+
+        100% {
+            stroke-dashoffset: 600;
+            opacity: 0;
+        }
+    }
+</style>

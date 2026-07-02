@@ -1,67 +1,152 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { Menu, X, Upload } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { usePathname } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
+import { Menu, Upload, User, LogOut, ChevronDown } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
 import { useUploadModal } from '@/hooks/use-upload-modal';
+import { AnimatedLogo } from './animated-logo';
 
-const navItems = [
-  { href: '/home', label: 'Trang chủ' },
-  { href: '/all-majors', label: 'Tài liệu' },
-  { href: '/subjects', label: 'Môn học' },
-  { href: '/exam-prep', label: 'Ôn thi' },
-  { href: '/feedback', label: 'Đánh giá' },
-];
+interface HeaderProps {
+  onMenuToggle?: () => void;
+}
 
-export function Header() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const pathname = usePathname();
-  const { openModal } = useUploadModal();
+function ActionButton({
+  children,
+  onClick,
+  href,
+  color = '#22C55E',
+  className = '',
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  href?: string;
+  color?: string;
+  className?: string;
+}) {
+  const baseClass =
+    'px-3 py-1.5 text-caption font-sans font-medium uppercase tracking-[0.08em] text-white ' +
+    'border-2 border-ink transition-all duration-150 ' +
+    'hover:translate-x-[2px] hover:translate-y-[2px] ' +
+    className;
 
-  const isActive = (href: string) => {
-    if (href === '/home') return pathname === '/home' || pathname === '/';
-    return pathname.startsWith(href);
+  const style = {
+    backgroundColor: color,
+    boxShadow: '4px 4px 0px 0px #111111',
   };
 
+  const handleEnter = (e: React.MouseEvent<HTMLElement>) => {
+    e.currentTarget.style.boxShadow = '2px 2px 0px 0px #111111';
+  };
+  const handleLeave = (e: React.MouseEvent<HTMLElement>) => {
+    e.currentTarget.style.boxShadow = '4px 4px 0px 0px #111111';
+  };
+
+  if (href) {
+    return (
+      <Link href={href} className={baseClass} style={style} onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
+        {children}
+      </Link>
+    );
+  }
+
   return (
-    <header className="border-b border-ink bg-paper">
-      {/* Main nav */}
-      <div className="arionear-container">
-        <div className="flex items-center justify-between h-16 md:h-20">
-          <Link href="/home">
-            <span className="font-serif font-bold text-ink text-2xl md:text-3xl leading-none tracking-tight">HUP Corner</span>
-          </Link>
+    <button onClick={onClick} className={baseClass} style={style} onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
+      {children}
+    </button>
+  );
+}
 
-          <nav className="hidden md:flex items-center gap-8">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'nav-link',
-                  isActive(item.href) && 'nav-link-active'
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-            <button
-              onClick={openModal}
-              className="btn-primary text-sm py-2 px-4"
-            >
-              <Upload size={14} /> Tải lên
-            </button>
-          </nav>
+export function Header({ onMenuToggle }: HeaderProps) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const { data: session, status } = useSession();
+  const { openModal } = useUploadModal();
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const user = session?.user as any;
+  const isLoggedIn = status === 'authenticated' && user;
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <header className="sticky top-0 z-50 border-b border-ink bg-paper">
+      <div className="flex items-center justify-between h-16 md:h-20 px-4 md:px-8 lg:px-12">
+        {/* Left: hamburger + logo */}
+        <div className="flex items-center gap-4">
           <button
-            className="md:hidden p-2 text-ink-lighter hover:text-ink transition-colors duration-200"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label={mobileOpen ? 'Đóng menu' : 'Mở menu'}
+            onClick={onMenuToggle}
+            className="p-2 text-ink-lighter hover:text-ink transition-colors"
+            aria-label="Mở menu"
           >
-            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+            <Menu size={24} />
           </button>
+          <Link href="/home">
+            <AnimatedLogo />
+          </Link>
+        </div>
+
+        {/* Right: upload + auth */}
+        <div className="flex items-center gap-3">
+          <ActionButton onClick={openModal} color="#0EA5E9">
+            <Upload size={14} className="inline mr-1" /> Tải lên
+          </ActionButton>
+
+          {isLoggedIn ? (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center gap-2 border-2 border-ink px-3 py-1.5 hover:bg-ink/5 transition-colors"
+              >
+                <div className="w-7 h-7 border border-ink overflow-hidden bg-ink-lighter flex items-center justify-center">
+                  {user.avatar_url ? (
+                    <img src={`/api/telegram/preview?fileId=${encodeURIComponent(user.avatar_url)}&preview=true&mimeType=image/jpeg`} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-paper text-xs font-bold">
+                      {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </span>
+                  )}
+                </div>
+                <span className="font-sans text-body-sm text-ink font-medium hidden sm:inline">@{user.username || 'user'}</span>
+                <ChevronDown size={14} className="text-ink-lighter" />
+              </button>
+
+              {dropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-56 border-2 border-ink bg-paper shadow-[6px_6px_0px_0px_#111] z-50">
+                  <div className="px-4 py-3 border-b border-ink/20">
+                    <p className="font-serif font-bold text-ink text-sm truncate">{user.name}</p>
+                    <p className="font-mono text-meta text-ink-lighter">@{user.username || 'user'}</p>
+                  </div>
+                  <Link
+                    href="/profile"
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 font-sans text-body-sm text-ink hover:bg-paper-light transition-colors"
+                  >
+                    <User size={14} />
+                    Xem trang cá nhân
+                  </Link>
+                  <button
+                    onClick={() => signOut({ callbackUrl: '/home' })}
+                    className="w-full flex items-center gap-3 px-4 py-3 font-sans text-body-sm text-red border-t border-ink/20 hover:bg-paper-light transition-colors"
+                  >
+                    <LogOut size={14} />
+                    Đăng xuất tài khoản
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center">
+              <ActionButton href="/login">Đăng nhập</ActionButton>
+            </div>
+          )}
         </div>
       </div>
 
@@ -85,33 +170,6 @@ export function Header() {
           <span>MIỄN PHÍ CHO CỘNG ĐỒNG HUP</span>
         </div>
       </div>
-
-      {/* Mobile menu */}
-      {mobileOpen && (
-        <div className="md:hidden border-t border-ink bg-paper">
-          <div className="arionear-container py-6 space-y-4">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  'block font-mono text-meta uppercase tracking-[0.15em] transition-colors duration-200',
-                  isActive(item.href) ? 'text-ink' : 'text-ink-lighter hover:text-ink'
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-            <button
-              onClick={() => { openModal(); setMobileOpen(false); }}
-              className="btn-primary w-full text-sm py-2.5"
-            >
-              <Upload size={14} /> Tải lên
-            </button>
-          </div>
-        </div>
-      )}
     </header>
   );
 }
