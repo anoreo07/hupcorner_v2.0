@@ -95,9 +95,12 @@ export function Header({ onMenuToggle }: HeaderProps) {
 
         {/* Right: upload + auth */}
         <div className="flex items-center gap-3">
-          <ActionButton onClick={openModal} color="#111" className="border-white">
-            <Upload size={14} className="inline mr-1" /> Tải lên
-          </ActionButton>
+          <button
+            onClick={openModal}
+            className="flex items-center gap-2 border-2 border-ink bg-paper px-3 py-1.5 text-caption font-sans font-medium uppercase tracking-[0.08em] hover:bg-ink hover:text-paper transition-colors"
+          >
+            <Upload size={14} /> Tải lên
+          </button>
 
           {isLoggedIn ? (
             <div className="relative" ref={dropdownRef}>
