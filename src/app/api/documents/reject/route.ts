@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id, admin_note } = await req.json();
+    const { id } = await req.json();
     if (!id) return NextResponse.json({ error: 'Document ID is required' }, { status: 400 });
 
     const supabaseAdmin = getSupabaseAdmin() as any;
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await supabaseAdmin
       .from('documents')
-      .update({ status: 'REJECTED', admin_note: admin_note || null })
+      .update({ status: 'REJECTED' })
       .eq('id', id)
       .select()
       .maybeSingle();

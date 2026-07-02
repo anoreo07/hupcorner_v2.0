@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Download, ArrowLeft, FileText, ZoomIn, ZoomOut,
-  Maximize2, X, Verified, Bookmark, Share2, ChevronRight, MessageCircle, Trash2, LogIn,
+  Maximize2, X, Verified, Bookmark, Share2, ChevronRight, LogIn,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { DocumentWithMajor } from '@/types/database';
@@ -16,8 +16,8 @@ import { supabase } from '@/lib/supabase';
 import { downloadFileParallel } from '@/utils/file-chunking';
 import { toast } from 'react-hot-toast';
 import { documentTypeLabels, documentTypeVariants } from '@/components/editorial/document-card';
-import { addBookmark, removeBookmark, recordDownload, getDocumentComments, addDocumentComment, deleteDocumentComment } from '@/lib/user';
-import type { DocumentComment, User } from '@/types/database';
+import { addBookmark, removeBookmark, recordDownload } from '@/lib/user';
+import type { User } from '@/types/database';
 
 interface DocumentDetailClientProps {
   document: DocumentWithMajor;
@@ -39,10 +39,6 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [loginAction, setLoginAction] = useState('');
-  const [comments, setComments] = useState<(DocumentComment & { users?: User })[]>([]);
-  const [commentText, setCommentText] = useState('');
-  const [submittingComment, setSubmittingComment] = useState(false);
-  const [loadingComments, setLoadingComments] = useState(true);
   const lastIncrementedId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -55,22 +51,6 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
     lastIncrementedId.current = document.id;
     supabase.rpc('increment_view_count', { doc_id: document.id });
   }, [document.id]);
-
-  useEffect(() => {
-    loadComments();
-  }, [document.id]);
-
-  const loadComments = async () => {
-    setLoadingComments(true);
-    try {
-      const data = await getDocumentComments(document.id);
-      setComments(data);
-    } catch {
-      // silent
-    } finally {
-      setLoadingComments(false);
-    }
-  };
 
   const requireLogin = (action: string) => {
     if (!isLoggedIn) {
@@ -179,33 +159,6 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
       toast.error(err.message || 'Gửi đánh giá thất bại');
     } finally {
       setSubmittingFeedback(false);
-    }
-  };
-
-  const handleAddComment = async () => {
-    if (!requireLogin('bình luận')) return;
-    if (!commentText.trim() || !user) return;
-    setSubmittingComment(true);
-    try {
-      await addDocumentComment(document.id, user.id, commentText.trim());
-      setCommentText('');
-      await loadComments();
-      toast.success('Đã thêm bình luận');
-    } catch {
-      toast.error('Không thể thêm bình luận');
-    } finally {
-      setSubmittingComment(false);
-    }
-  };
-
-  const handleDeleteComment = async (commentId: string) => {
-    if (!user) return;
-    try {
-      await deleteDocumentComment(commentId, user.id);
-      await loadComments();
-      toast.success('Đã xoá bình luận');
-    } catch {
-      toast.error('Không thể xoá bình luận');
     }
   };
 
@@ -358,78 +311,6 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
           </div>
         </section>
       )}
-
-      {/* Bình luận */}
-      <section className="mb-16 max-w-content">
-        <p className="label-red mb-3">BÌNH LUẬN</p>
-        <h2 className="section-heading mb-8">Thảo luận về tài liệu</h2>
-
-        {isLoggedIn ? (
-          <div className="flex gap-3 mb-8">
-            <textarea
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              className="input-field min-h-[80px]"
-              placeholder="Viết bình luận..."
-              rows={2}
-            />
-            <button
-              onClick={handleAddComment}
-              disabled={submittingComment || !commentText.trim()}
-              className="btn-primary shrink-0 self-end disabled:opacity-50"
-            >
-              {submittingComment ? '...' : 'Gửi'}
-            </button>
-          </div>
-        ) : (
-          <div className="border border-ink/20 p-6 text-center mb-8">
-            <p className="text-body-sm text-ink-lighter mb-3">Đăng nhập để tham gia thảo luận</p>
-            <Link href="/login" className="btn-outline inline-flex">
-              <LogIn size={14} /> Đăng nhập
-            </Link>
-          </div>
-        )}
-
-        {loadingComments ? (
-          <div className="text-center py-8">
-            <div className="w-6 h-6 border-2 border-ink/10 border-t-ink animate-spin mx-auto" />
-          </div>
-        ) : comments.length === 0 ? (
-          <p className="text-body-sm text-ink-lighter">Chưa có bình luận nào.</p>
-        ) : (
-          <div className="space-y-4">
-            {comments.map((comment) => (
-              <div key={comment.id} className="border border-ink/20 p-4">
-                <div className="flex items-start justify-between gap-3 mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 border border-ink bg-ink-lighter flex items-center justify-center">
-                      <span className="text-paper text-caption font-bold">
-                        {(comment.users?.name || '?').charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <span className="font-sans text-body-sm text-ink font-medium">
-                      {comment.users?.name || 'Người dùng'}
-                    </span>
-                    <span className="font-mono text-meta text-ink-lighter">
-                      {new Date(comment.created_at).toLocaleDateString('vi-VN')}
-                    </span>
-                  </div>
-                  {user && (comment as any).user_id === user.id && (
-                    <button
-                      onClick={() => handleDeleteComment(comment.id)}
-                      className="text-ink-lighter hover:text-red transition-colors"
-                      title="Xoá"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  )}
-                </div>
-                <p className="text-body-sm text-ink leading-relaxed">{comment.content}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
 
       {/* Tài liệu liên quan */}
       <section className="mb-16 max-w-content">
