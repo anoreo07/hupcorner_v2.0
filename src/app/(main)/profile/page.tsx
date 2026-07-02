@@ -180,20 +180,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Top bar */}
-      <div className="border-b border-ink">
-        <div className="arionear-container">
-          <div className="flex items-center justify-end h-16">
-            <div className="relative w-full max-w-xs">
-              <input
-                type="text"
-                placeholder="Tìm kiếm tài liệu..."
-                className="w-full border border-ink bg-transparent px-4 py-2 text-body-sm text-ink placeholder:text-ink-muted focus:border-ink focus:outline-none"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+
 
       <div className="arionear-container py-8 md:py-12">
         <div className="flex flex-col lg:flex-row gap-8">

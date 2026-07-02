@@ -330,6 +330,15 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
           } />
           <InfoRow label="Dung lượng" value={fileSize} />
           <InfoRow label="Ngày đăng" value={new Date(document.created_at).toLocaleDateString('vi-VN')} />
+          <InfoRow label="Người đăng" value={
+            document.user_id ? (
+              <Link href={`/users/${document.user_id}`} className="text-ink underline underline-offset-4 decoration-1 hover:text-red transition-colors">
+                {document.uploader_name || 'Người dùng ẩn danh'}
+              </Link>
+            ) : (
+              <span>{document.uploader_name || 'Người dùng ẩn danh'}</span>
+            )
+          } />
           <InfoRow label="Lượt xem" value={`${viewCount.toLocaleString('vi-VN')}`} />
           <InfoRow label="Lượt tải" value={`${downloadCount.toLocaleString('vi-VN')}`} />
           <InfoRow label="Trạng thái" value={

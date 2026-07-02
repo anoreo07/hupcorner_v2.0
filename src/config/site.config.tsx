@@ -15,6 +15,7 @@ export function metaObject(title?: string): Metadata {
   return {
     title: metaTitle,
     description: siteConfig.description,
+    icons: { icon: '/favicon.ico' },
     openGraph: {
       title: metaTitle,
       description: siteConfig.description,
