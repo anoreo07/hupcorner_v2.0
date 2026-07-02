@@ -1,3 +1,27 @@
+-- ============================================================
+-- HUP Corner — Users & Auth System
+-- ============================================================
+-- Dự án: Nền tảng chia sẻ tài liệu học thuật cho sinh viên Dược
+-- Framework: Next.js 15.5 (App Router) + Supabase (PostgreSQL)
+-- Auth: NextAuth.js (credentials provider, users table làm nguồn auth)
+-- Lưu ý: KHÔNG dùng Supabase Auth — dùng custom users table
+--         với password_hash (bcrypt), role, status riêng.
+-- ============================================================
+-- Các bảng chính:
+--   users              — Tài khoản người dùng (login bằng email+password)
+--   student_verifications — Xác nhận sinh viên Dược (admin duyệt)
+--   bookmarks          — Lưu tài liệu
+--   download_history   — Lịch sử tải
+--   document_comments  — Bình luận tài liệu
+--   forum_threads      — Bài viết diễn đàn (có image_url đính kèm)
+--   forum_comments     — Bình luận diễn đàn
+--   forum_likes        — Like bài viết
+--   video_lectures     — Bài giảng video (youtube_url)
+-- ============================================================
+-- Roles: USER (mặc định), PHARMACY_STUDENT (sau khi admin duyệt), ADMIN
+-- Status: ACTIVE, LOCKED (xoá tạm 30 ngày), DELETED
+-- ============================================================
+
 -- Users & Auth system for HUP Corner
 -- Adds user registration, role management, profiles, forum, comments, bookmarks, video lectures
 
@@ -106,6 +130,9 @@ CREATE TABLE IF NOT EXISTS public.forum_threads (
     CONSTRAINT forum_threads_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
 ALTER TABLE public.forum_threads OWNER TO postgres;
+
+-- Add image_url column if upgrading from old schema
+ALTER TABLE public.forum_threads ADD COLUMN IF NOT EXISTS image_url text;
 
 -- 10. Forum comments table
 CREATE TABLE IF NOT EXISTS public.forum_comments (
