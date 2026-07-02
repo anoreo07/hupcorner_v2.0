@@ -15,7 +15,7 @@ function ActionButton({
   children,
   onClick,
   href,
-  color = '#22C55E',
+  color = '#111',
   className = '',
 }: {
   children: React.ReactNode;
@@ -95,7 +95,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
 
         {/* Right: upload + auth */}
         <div className="flex items-center gap-3">
-          <ActionButton onClick={openModal} color="#0EA5E9">
+          <ActionButton onClick={openModal} color="#111" className="border-white">
             <Upload size={14} className="inline mr-1" /> Tải lên
           </ActionButton>
 
@@ -144,7 +144,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
             </div>
           ) : (
             <div className="flex items-center">
-              <ActionButton href="/login">Đăng nhập</ActionButton>
+              <ActionButton href="/login" color="#D43B2C">Đăng nhập</ActionButton>
             </div>
           )}
         </div>
