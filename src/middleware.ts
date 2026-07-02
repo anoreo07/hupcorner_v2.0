@@ -19,14 +19,6 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Profile route protection (must be logged in)
-  if (pathname.startsWith('/profile')) {
-    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-  }
-
   // Root redirect
   if (pathname === '/') {
     return NextResponse.redirect(new URL('/home', request.url));
@@ -36,5 +28,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/admin/:path*', '/profile/:path*'],
+  matcher: ['/', '/admin/:path*'],
 };
