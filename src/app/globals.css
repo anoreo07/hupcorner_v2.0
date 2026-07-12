@@ -17,6 +17,11 @@
   body {
     @apply bg-paper text-ink font-sans;
     font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+    cursor: url('/cursor.png'), auto;
+  }
+
+  a, button, input, select, textarea, [role="button"], label, summary {
+    cursor: url('/cursor.png'), auto;
   }
 
   h1, h2, h3, h4 { @apply font-serif font-bold tracking-tight; }

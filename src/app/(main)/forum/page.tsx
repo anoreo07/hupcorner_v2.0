@@ -22,9 +22,19 @@ export default function ForumPage() {
 
   useEffect(() => {
     loadThreads();
+
+    const hasSeen = sessionStorage.getItem('hup_corner_forum_character');
+    if (hasSeen) {
+      setShowCharacter(false);
+      return;
+    }
+
     const timer = setTimeout(() => {
       setFadingOut(true);
-      setTimeout(() => setShowCharacter(false), 500);
+      setTimeout(() => {
+        setShowCharacter(false);
+        sessionStorage.setItem('hup_corner_forum_character', 'true');
+      }, 500);
     }, 8000);
     return () => clearTimeout(timer);
   }, []);
