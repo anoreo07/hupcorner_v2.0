@@ -312,6 +312,34 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
         </section>
       )}
 
+      {/* Đánh giá */}
+      <section className="mb-16 max-w-content">
+        <p className="label-red mb-3">ĐÁNH GIÁ</p>
+        <h2 className="section-heading mb-2">Đánh giá tài liệu</h2>
+        <p className="text-body-sm text-ink-lighter mb-6">Chia sẻ trải nghiệm của bạn về tài liệu này.</p>
+        <div className="flex items-center gap-4 mb-6">
+          <StarRating value={feedbackRating} onChange={setFeedbackRating} size={24} />
+          {feedbackRating > 0 && (
+            <span className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">
+              {feedbackRating === 1 ? 'Rất tệ' : feedbackRating === 2 ? 'Tệ' : feedbackRating === 3 ? 'Tạm ổn' : feedbackRating === 4 ? 'Tốt' : 'Xuất sắc'}
+            </span>
+          )}
+        </div>
+        <textarea
+          value={feedbackText}
+          onChange={(e) => setFeedbackText(e.target.value)}
+          className="input-field min-h-[100px] mb-4"
+          placeholder="Viết nhận xét... (không bắt buộc)"
+        />
+        <button
+          onClick={handleSubmitFeedback}
+          disabled={submittingFeedback || !feedbackRating}
+          className="btn-primary disabled:opacity-50"
+        >
+          {submittingFeedback ? 'Đang gửi...' : 'Gửi đánh giá'}
+        </button>
+      </section>
+
       {/* Tài liệu liên quan */}
       <section className="mb-16 max-w-content">
         <p className="label-red mb-3">LIÊN QUAN</p>
@@ -348,34 +376,6 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
         ) : (
           <p className="text-body-sm text-ink-lighter">Không có tài liệu liên quan.</p>
         )}
-      </section>
-
-      {/* Đánh giá */}
-      <section className="mb-16 max-w-content">
-        <p className="label-red mb-3">ĐÁNH GIÁ</p>
-        <h2 className="section-heading mb-2">Đánh giá tài liệu</h2>
-        <p className="text-body-sm text-ink-lighter mb-6">Chia sẻ trải nghiệm của bạn về tài liệu này.</p>
-        <div className="flex items-center gap-4 mb-6">
-          <StarRating value={feedbackRating} onChange={setFeedbackRating} size={24} />
-          {feedbackRating > 0 && (
-            <span className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">
-              {feedbackRating === 1 ? 'Rất tệ' : feedbackRating === 2 ? 'Tệ' : feedbackRating === 3 ? 'Tạm ổn' : feedbackRating === 4 ? 'Tốt' : 'Xuất sắc'}
-            </span>
-          )}
-        </div>
-        <textarea
-          value={feedbackText}
-          onChange={(e) => setFeedbackText(e.target.value)}
-          className="input-field min-h-[100px] mb-4"
-          placeholder="Viết nhận xét... (không bắt buộc)"
-        />
-        <button
-          onClick={handleSubmitFeedback}
-          disabled={submittingFeedback || !feedbackRating}
-          className="btn-primary disabled:opacity-50"
-        >
-          {submittingFeedback ? 'Đang gửi...' : 'Gửi đánh giá'}
-        </button>
       </section>
 
       {/* Login Required Popup */}

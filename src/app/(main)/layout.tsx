@@ -7,7 +7,7 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { Footer } from '@/components/layout/footer';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col bg-paper">

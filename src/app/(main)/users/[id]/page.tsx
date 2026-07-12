@@ -47,7 +47,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
               <div className="w-full h-full border-2 border-ink overflow-hidden bg-ink-lighter">
                 {user.avatar_url ? (
                   <img
-                    src={`/api/telegram/preview?fileId=${encodeURIComponent(user.avatar_url)}&preview=true&mimeType=image/jpeg`}
+                    src={user.avatar_url.startsWith('http') ? user.avatar_url : `/api/telegram/preview?fileId=${encodeURIComponent(user.avatar_url)}&preview=true&mimeType=image/jpeg`}
                     alt={user.name}
                     className="w-full h-full object-cover"
                   />

@@ -207,7 +207,11 @@ export async function getOtherDocumentsPaginated(
 }
 
 export async function getSiteReviews() {
-  const { data, error } = await supabase.from('site_reviews').select('*').order('created_at', { ascending: false });
+  const { data, error } = await supabase
+    .from('site_reviews')
+    .select('*')
+    .not('title', 'ilike', 'Đánh giá:%')
+    .order('created_at', { ascending: false });
   if (error) throw error;
   return data;
 }

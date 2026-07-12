@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { Camera, Bookmark as BookmarkIcon, Download, Upload, AlertTriangle, Loader2, LogOut, Save } from 'lucide-react';
 import { getCurrentUser, updateProfile, deleteAccount, getBookmarks, getDownloadHistory } from '@/lib/user';
 import { getDocumentsByUser } from '@/lib/supabase';
-import { uploadFileWithChunking, needsChunking } from '@/utils/file-chunking';
 import type { User, Bookmark, DownloadRecord, DocumentWithMajor } from '@/types/database';
 import dayjs from 'dayjs';
 import toast from 'react-hot-toast';
@@ -137,26 +136,24 @@ export default function ProfilePage() {
 
     setAvatarUploading(true);
     try {
-      const channelId = process.env.NEXT_PUBLIC_TELEGRAM_CHANNEL_ID || '-1003810443754';
-      let botIndex = 1;
-      try {
-        const res = await fetch('/api/telegram/upload-proxy');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.bot_index) botIndex = data.bot_index;
-        }
-      } catch {}
+      const formData = new FormData();
+      formData.append('file', file);
 
-      const fileIds = await uploadFileWithChunking(file, channelId, undefined, botIndex);
-      if (!fileIds || fileIds.length === 0) throw new Error('Upload thất bại');
+      const res = await fetch('/api/upload-avatar', {
+        method: 'POST',
+        body: formData,
+      });
 
-      const fileId = needsChunking(file.size) ? `chunk:${fileIds.join(',')}` : fileIds[0];
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Upload thất bại');
+      }
 
-      const updated = await updateProfile({ avatar_url: fileId });
+      const updated = await res.json();
       setUser(updated);
       toast.success('Cập nhật ảnh đại diện thành công!');
-    } catch {
-      toast.error('Không thể tải ảnh lên');
+    } catch (err: any) {
+      toast.error(err.message || 'Không thể tải ảnh lên');
     } finally {
       setAvatarUploading(false);
     }
@@ -192,7 +189,7 @@ export default function ProfilePage() {
                 <div className="w-full h-full border-2 border-ink overflow-hidden">
                   {user.avatar_url ? (
                     <img
-                      src={`/api/telegram/preview?fileId=${encodeURIComponent(user.avatar_url)}&preview=true&mimeType=image/jpeg`}
+                      src={user.avatar_url.startsWith('http') ? user.avatar_url : `/api/telegram/preview?fileId=${encodeURIComponent(user.avatar_url)}&preview=true&mimeType=image/jpeg`}
                       alt={user.name}
                       className="w-full h-full object-cover"
                     />

@@ -110,7 +110,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
               >
                 <div className="w-7 h-7 border border-ink overflow-hidden bg-ink-lighter flex items-center justify-center">
                   {user.avatar_url ? (
-                    <img src={`/api/telegram/preview?fileId=${encodeURIComponent(user.avatar_url)}&preview=true&mimeType=image/jpeg`} alt="" className="w-full h-full object-cover" />
+                    <img src={user.avatar_url.startsWith('http') ? user.avatar_url : `/api/telegram/preview?fileId=${encodeURIComponent(user.avatar_url)}&preview=true&mimeType=image/jpeg`} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-paper text-xs font-bold">
                       {user.name?.charAt(0)?.toUpperCase() || 'U'}

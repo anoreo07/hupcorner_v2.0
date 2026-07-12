@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
-import { Eye, EyeOff, Loader2, UserPlus, ArrowRight, Check } from 'lucide-react';
+import { Eye, EyeOff, Loader2, UserPlus, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 type Step = 1 | 2 | 3;
@@ -25,6 +25,10 @@ export function RegisterForm() {
   const [username, setUsername] = useState('');
   const [role, setRole] = useState<'USER' | 'PHARMACY_STUDENT'>('USER');
   const [description, setDescription] = useState('');
+
+  const [emailError, setEmailError] = useState('');
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const emailCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [studentFullName, setStudentFullName] = useState('');
   const [studentId, setStudentId] = useState('');
@@ -64,9 +68,34 @@ export function RegisterForm() {
     return true;
   };
 
+  const checkEmailExists = useCallback(async (email: string) => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+    setCheckingEmail(true);
+    setEmailError('');
+    try {
+      const res = await fetch(`/api/auth/check-email?email=${encodeURIComponent(email)}`);
+      const data = await res.json();
+      if (data.exists) {
+        setEmailError('Email này đã được sử dụng');
+      }
+    } catch {
+      // ignore network errors
+    } finally {
+      setCheckingEmail(false);
+    }
+  }, []);
+
+  const handleEmailBlur = () => {
+    if (emailError) return;
+    if (emailCheckTimer.current) clearTimeout(emailCheckTimer.current);
+    emailCheckTimer.current = setTimeout(() => checkEmailExists(email), 500);
+  };
+
   const handleNextToStep2 = () => {
     setError('');
-    if (validateStep1()) setStep(2);
+    if (!validateStep1()) return;
+    if (emailError) { setError(emailError); return; }
+    setStep(2);
   };
 
   const handleNextToStep3 = () => {
@@ -215,11 +244,14 @@ export function RegisterForm() {
               id="reg-email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
+              onBlur={handleEmailBlur}
               placeholder="your@email.com"
               required
-              className="input-field"
+              className={`input-field ${emailError ? 'border-red' : ''}`}
             />
+            {checkingEmail && <p className="font-sans text-caption text-ink-lighter">Đang kiểm tra email...</p>}
+            {emailError && <p className="font-sans text-caption text-red">{emailError}</p>}
           </div>
 
           <div className="space-y-1.5">
@@ -344,15 +376,24 @@ export function RegisterForm() {
             />
           </div>
 
-          <button
-            type="button"
-            onClick={handleNextToStep3}
-            disabled={loading}
-            className="btn-primary w-full disabled:opacity-50"
-          >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-            {role === 'PHARMACY_STUDENT' ? 'Xác nhận sinh viên →' : 'Hoàn tất đăng ký →'}
-          </button>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="btn-outline flex-1"
+            >
+              <ArrowLeft size={16} /> Quay lại
+            </button>
+            <button
+              type="button"
+              onClick={handleNextToStep3}
+              disabled={loading}
+              className="btn-primary flex-1 disabled:opacity-50"
+            >
+              {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+              {role === 'PHARMACY_STUDENT' ? 'Xác nhận sinh viên →' : 'Hoàn tất đăng ký →'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -404,15 +445,24 @@ export function RegisterForm() {
             />
           </div>
 
-          <button
-            type="button"
-            onClick={handleStep3Submit}
-            disabled={loading}
-            className="btn-primary w-full disabled:opacity-50"
-          >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
-            {loading ? 'Đang tạo tài khoản...' : 'Xác nhận & tạo tài khoản →'}
-          </button>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              className="btn-outline flex-1"
+            >
+              <ArrowLeft size={16} /> Quay lại
+            </button>
+            <button
+              type="button"
+              onClick={handleStep3Submit}
+              disabled={loading}
+              className="btn-primary flex-1 disabled:opacity-50"
+            >
+              {loading ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
+              {loading ? 'Đang tạo tài khoản...' : 'Xác nhận & tạo tài khoản →'}
+            </button>
+          </div>
         </div>
       )}
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import AuthProvider from '@/app/api/auth/[...nextauth]/auth-provider';
 import { UploadModal } from '@/components/layout/upload-modal';
+import { WelcomeModal } from '@/components/ui/WelcomeModal';
 
 export function Providers({
   children,
@@ -23,6 +24,7 @@ export function Providers({
       {children}
       {mounted && <Toaster position="top-right" toastOptions={{ duration: 4000 }} />}
       <UploadModal />
+      <WelcomeModal />
     </AuthProvider>
   );
 }
