@@ -140,19 +140,29 @@ export async function incrementThreadView(id: string): Promise<void> {
 }
 
 export async function getForumComments(threadId: string): Promise<(ForumComment & { users?: User })[]> {
-  const { data } = await sb.from('forum_comments')
-    .select('*, users!inner(*)')
-    .eq('thread_id', threadId)
-    .order('created_at', { ascending: true });
-  return (data || []) as any;
+  const res = await fetch(`/api/forum/comments?threadId=${encodeURIComponent(threadId)}`);
+  if (!res.ok) return [];
+  return res.json();
 }
 
 export async function createForumComment(threadId: string, userId: string, content: string): Promise<void> {
-  await sb.from('forum_comments').insert({ thread_id: threadId, user_id: userId, content });
+  const res = await fetch('/api/forum/comments', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ thread_id: threadId, content }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error);
+  }
 }
 
 export async function deleteForumComment(commentId: string, userId: string): Promise<void> {
-  await sb.from('forum_comments').delete().eq('id', commentId).eq('user_id', userId);
+  const res = await fetch(`/api/forum/comments?id=${encodeURIComponent(commentId)}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error);
+  }
 }
 
 export async function toggleThreadLike(userId: string, threadId: string): Promise<boolean> {

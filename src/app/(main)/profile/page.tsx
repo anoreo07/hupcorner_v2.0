@@ -4,8 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Camera, Bookmark as BookmarkIcon, Download, Upload, AlertTriangle, Loader2, LogOut, Save } from 'lucide-react';
-import { getCurrentUser, updateProfile, deleteAccount, getBookmarks, getDownloadHistory } from '@/lib/user';
-import { getDocumentsByUser } from '@/lib/supabase';
+import { getCurrentUser, updateProfile, deleteAccount } from '@/lib/user';
 import type { User, Bookmark, DownloadRecord, DocumentWithMajor } from '@/types/database';
 import dayjs from 'dayjs';
 import toast from 'react-hot-toast';
@@ -79,18 +78,27 @@ export default function ProfilePage() {
   };
 
   const loadBookmarks = async (userId: string) => {
-    const data = await getBookmarks(userId);
-    setBookmarks(data);
+    try {
+      const res = await fetch('/api/user/bookmarks');
+      const data = await res.json();
+      setBookmarks(data || []);
+    } catch { setBookmarks([]); }
   };
 
   const loadDownloads = async (userId: string) => {
-    const data = await getDownloadHistory(userId);
-    setDownloads(data);
+    try {
+      const res = await fetch('/api/user/downloads');
+      const data = await res.json();
+      setDownloads(data || []);
+    } catch { setDownloads([]); }
   };
 
   const loadUploads = async (userId: string) => {
-    const data = await getDocumentsByUser(userId);
-    setUploads(data);
+    try {
+      const res = await fetch('/api/user/uploads');
+      const data = await res.json();
+      setUploads(data || []);
+    } catch { setUploads([]); }
   };
 
   const handleSaveProfile = async () => {

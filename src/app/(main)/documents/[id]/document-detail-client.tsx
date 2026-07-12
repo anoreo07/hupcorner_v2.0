@@ -17,7 +17,7 @@ import { downloadFileParallel } from '@/utils/file-chunking';
 import { toast } from 'react-hot-toast';
 import dayjs from 'dayjs';
 import { documentTypeLabels, documentTypeVariants } from '@/components/editorial/document-card';
-import { addBookmark, removeBookmark, recordDownload } from '@/lib/user';
+
 import type { User } from '@/types/database';
 
 interface DocumentDetailClientProps {
@@ -78,11 +78,11 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
     if (!user) return;
     try {
       if (bookmarked) {
-        await removeBookmark(user.id, document.id);
+        await fetch('/api/user/bookmarks/manage', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ documentId: document.id }) });
         setBookmarked(false);
         toast.success('Đã bỏ lưu tài liệu');
       } else {
-        await addBookmark(user.id, document.id);
+        await fetch('/api/user/bookmarks/manage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ documentId: document.id }) });
         setBookmarked(true);
         toast.success('Đã lưu tài liệu');
       }
@@ -141,7 +141,7 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
       }
       await supabase.rpc('increment_download_count', { doc_id: document.id });
       if (isLoggedIn && user) {
-        await recordDownload(user.id, document.id).catch(() => {});
+        try { await fetch('/api/user/record-download', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ documentId: document.id }) }); } catch {};
       }
       toast.success('Tải xuống hoàn tất!', { id: toastId });
     } catch {

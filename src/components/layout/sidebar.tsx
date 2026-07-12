@@ -51,18 +51,18 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
       <aside
         className={cn(
-          'fixed top-16 md:top-20 left-0 z-40 w-64 h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] bg-paper border-r border-ink overflow-y-auto transition-transform duration-200',
+          'fixed top-16 md:top-20 left-0 z-40 w-64 h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] bg-paper border-r border-ink overflow-y-auto transition-transform duration-200 flex flex-col',
           open ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-ink/10">
+        <div className="flex items-center justify-between px-4 py-3 shrink-0">
           <span className="font-mono text-meta uppercase tracking-widest text-ink-lighter">Menu</span>
           <button onClick={onClose} className="text-ink-lighter hover:text-ink">
             <X size={20} />
           </button>
         </div>
 
-        <nav className="py-3">
+        <nav className="py-3 flex-1">
           {sidebarItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);

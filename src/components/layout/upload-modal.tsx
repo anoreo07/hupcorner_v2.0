@@ -6,10 +6,10 @@ import { Dialog } from '@/components/ui/dialog';
 import { useUploadModal } from '@/hooks/use-upload-modal';
 import { uploadFileWithChunking, needsChunking, calculateChunks } from '@/utils/file-chunking';
 import { uploadDocument, getMajors, getSubjects } from '@/lib/supabase';
-import { Upload, File, X, Check, Loader2, Search } from 'lucide-react';
+import { Upload, File, X, Check, Loader2, Search, BookOpen, Video, ArrowLeft } from 'lucide-react';
 import type { DocumentType, Major, Subject } from '@/types/database';
 
-type Step = 'form' | 'done';
+type Step = 'choose' | 'document-form' | 'video-form' | 'done';
 
 const DESC_MAX_LENGTH = 150;
 
@@ -21,15 +21,22 @@ function isValidAcademicYear(value: string): boolean {
   return end === start + 1;
 }
 
+function isValidYoutubeUrl(value: string): boolean {
+  return /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?]+)/.test(value);
+}
+
 export function UploadModal() {
   const { data: session } = useSession();
   const user = session?.user as any;
   const isLoggedIn = !!user;
-  const { isOpen, closeModal } = useUploadModal();
+  const role = user?.role;
+  const isPharmacyStudent = role === 'PHARMACY_STUDENT' || role === 'ADMIN';
+  const { isOpen, closeModal, uploadType } = useUploadModal();
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const [step, setStep] = useState<Step>('form');
+  const [step, setStep] = useState<Step>('choose');
+  const [isVideoUpload, setIsVideoUpload] = useState(false);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -54,28 +61,52 @@ export function UploadModal() {
   const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
   const subjectSearchRef = useRef<HTMLDivElement>(null);
 
+  const [videoTitle, setVideoTitle] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [videoLecturer, setVideoLecturer] = useState('');
+  const [videoSubjectName, setVideoSubjectName] = useState('');
+  const [videoSubjectCode, setVideoSubjectCode] = useState('');
+  const [videoDescription, setVideoDescription] = useState('');
+  const [videoMajorId, setVideoMajorId] = useState('');
+  const [videoError, setVideoError] = useState('');
+  const [videoSubmitting, setVideoSubmitting] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
-      setStep('form');
-      setSelectedFile(null);
-      setUploadProgress(0);
-      setUploadStatus('idle');
-      setUploadMessage('');
-      setTitle('');
-      setDocumentType('OTHER');
-      setSelectedMajorId('');
-      setSelectedSubject(null);
-      setSubjectSearch('');
-      setAcademicYear('');
-      setAcademicYearError('');
-      setLecturerName('');
-      setDescription('');
-      setAnonymous(false);
-      setSubmitting(false);
+      setStep(uploadType === 'document' ? 'document-form' : uploadType === 'video' ? 'video-form' : 'choose');
+      resetForm();
       getMajors().then(setMajors).catch(() => {});
       getSubjects().then(setSubjects).catch(() => {});
     }
-  }, [isOpen]);
+  }, [isOpen, uploadType]);
+
+  function resetForm() {
+    setSelectedFile(null);
+    setUploadProgress(0);
+    setUploadStatus('idle');
+    setUploadMessage('');
+    setTitle('');
+    setDocumentType('OTHER');
+    setSelectedMajorId('');
+    setSelectedSubject(null);
+    setSubjectSearch('');
+    setAcademicYear('');
+    setAcademicYearError('');
+    setLecturerName('');
+    setDescription('');
+    setAnonymous(false);
+    setSubmitting(false);
+    setVideoTitle('');
+    setVideoUrl('');
+    setVideoLecturer('');
+    setVideoSubjectName('');
+    setVideoSubjectCode('');
+    setVideoDescription('');
+    setVideoMajorId('');
+    setVideoError('');
+    setVideoSubmitting(false);
+    setIsVideoUpload(false);
+  }
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -199,17 +230,191 @@ export function UploadModal() {
     }
   };
 
+  const handleVideoSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setVideoError('');
+
+    if (!videoTitle || !videoUrl) {
+      setVideoError('Vui lòng điền tiêu đề và link bài giảng');
+      return;
+    }
+    if (!isValidYoutubeUrl(videoUrl)) {
+      setVideoError('Link YouTube không hợp lệ. VD: https://www.youtube.com/watch?v=...');
+      return;
+    }
+
+    setVideoSubmitting(true);
+    try {
+      const res = await fetch('/api/video-lectures', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: videoTitle,
+          youtube_url: videoUrl,
+          lecturer_name: videoLecturer || null,
+          subject_name: videoSubjectName || null,
+          subject_code: videoSubjectCode || null,
+          description: videoDescription || null,
+          major_id: videoMajorId || null,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Không thể đăng bài giảng');
+      }
+
+      setStep('done');
+    } catch (err: any) {
+      setVideoError(err.message || 'Có lỗi xảy ra. Vui lòng thử lại.');
+    } finally {
+      setVideoSubmitting(false);
+    }
+  };
+
   const canSubmit = selectedFile && title && !submitting;
+
+  const modalTitle = step === 'done' ? 'Tải lên thành công'
+    : step === 'choose' ? 'Bạn muốn đóng góp?'
+    : step === 'video-form' ? 'Đăng bài giảng'
+    : 'Tải lên tài liệu';
 
   return (
     <Dialog
       open={isOpen}
-      onClose={submitting ? () => {} : closeModal}
-      title={step === 'done' ? 'Tải lên thành công' : 'Tải lên tài liệu'}
+      onClose={submitting || videoSubmitting ? () => {} : closeModal}
+      title={modalTitle}
       className="max-w-2xl"
     >
-      {step === 'form' && (
+      {/* Step: Choose */}
+      {step === 'choose' && (
+        <div className="space-y-6 py-4">
+          <p className="text-body-sm text-ink-lighter text-center">
+            Chọn loại nội dung bạn muốn đóng góp cho cộng đồng
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              onClick={() => { setStep('document-form'); setIsVideoUpload(false); }}
+              className="border-2 border-ink p-8 text-center hover:bg-ink/5 transition-colors group"
+            >
+              <BookOpen size={40} className="mx-auto text-ink-lighter group-hover:text-ink transition-colors" />
+              <h3 className="font-serif font-bold text-lg text-ink mt-4">Tài liệu</h3>
+              <p className="font-sans text-body-sm text-ink-lighter mt-2">
+                Đề thi, bài giảng, giáo trình, đề cương,...
+              </p>
+            </button>
+            <button
+              onClick={() => { setStep('video-form'); setIsVideoUpload(true); }}
+              className="border-2 border-ink p-8 text-center hover:bg-ink/5 transition-colors group"
+            >
+              <Video size={40} className="mx-auto text-ink-lighter group-hover:text-ink transition-colors" />
+              <h3 className="font-serif font-bold text-lg text-ink mt-4">Video bài giảng</h3>
+              <p className="font-sans text-body-sm text-ink-lighter mt-2">
+                Chia sẻ video bài giảng từ YouTube
+              </p>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step: Video Form */}
+      {step === 'video-form' && (
+        <form onSubmit={handleVideoSubmit} className="space-y-5">
+          <div className="bg-ink/5 border border-ink/20 p-4 space-y-2">
+            <p className="font-serif font-bold text-ink text-sm">Hướng dẫn đăng bài giảng</p>
+            <ol className="font-sans text-body-sm text-ink-lighter list-decimal list-inside space-y-1">
+              <li>Tìm video bài giảng trên YouTube</li>
+              <li>Sao chép đường dẫn (URL) từ thanh địa chỉ</li>
+              <li>Điền thông tin bài giảng vào form bên dưới</li>
+              <li>Nhấn "Đăng bài giảng" để chia sẻ với cộng đồng</li>
+            </ol>
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+            <div className="col-span-2 space-y-1.5">
+              <label className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">Tiêu đề *</label>
+              <input type="text" value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} className="input-field" placeholder="VD: Bài 1 - Đại cương về dược lý" required />
+            </div>
+
+            <div className="col-span-2 space-y-1.5">
+              <label className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">Link bài giảng (YouTube) *</label>
+              <input type="url" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="input-field" placeholder="https://www.youtube.com/watch?v=..." required />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">Giảng viên</label>
+              <input type="text" value={videoLecturer} onChange={(e) => setVideoLecturer(e.target.value)} className="input-field" placeholder="Tên giảng viên" />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">Khoa</label>
+              <select value={videoMajorId} onChange={(e) => setVideoMajorId(e.target.value)} className="select-field">
+                <option value="">-- Chọn khoa --</option>
+                {majors.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">Tên môn học</label>
+              <input type="text" value={videoSubjectName} onChange={(e) => setVideoSubjectName(e.target.value)} className="input-field" placeholder="VD: Dược lý" />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">Mã môn học</label>
+              <input type="text" value={videoSubjectCode} onChange={(e) => setVideoSubjectCode(e.target.value)} className="input-field" placeholder="VD: DL101" />
+            </div>
+
+            <div className="col-span-2 space-y-1.5">
+              <label className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">Mô tả</label>
+              <textarea
+                value={videoDescription}
+                onChange={(e) => setVideoDescription(e.target.value)}
+                className="input-field min-h-[80px]"
+                placeholder="Mô tả ngắn về bài giảng"
+              />
+            </div>
+          </div>
+
+          {videoError && (
+            <div className="p-3 border border-red bg-red/5">
+              <p className="font-sans text-body-sm text-red">{videoError}</p>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={() => setStep('choose')} className="btn-outline flex-1" disabled={videoSubmitting}>
+              <span className="flex items-center justify-center gap-2">
+                <ArrowLeft size={14} /> Quay lại
+              </span>
+            </button>
+            <button type="submit" disabled={videoSubmitting || !videoTitle || !videoUrl} className="btn-primary flex-1 disabled:opacity-50">
+              {videoSubmitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 size={16} className="animate-spin" /> Đang đăng...
+                </span>
+              ) : (
+                'Đăng bài giảng'
+              )}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Step: Document Form */}
+      {step === 'document-form' && (
         <form onSubmit={handleSubmit} className="space-y-5">
+          {isPharmacyStudent && (
+            <button
+              type="button"
+              onClick={() => setStep('choose')}
+              className="font-mono text-meta text-ink-lighter hover:text-ink flex items-center gap-1"
+            >
+              <ArrowLeft size={12} /> Quay lại
+            </button>
+          )}
+
           <div>
             {!selectedFile ? (
               <div
@@ -417,6 +622,7 @@ export function UploadModal() {
         </form>
       )}
 
+      {/* Step: Done (success) */}
       {step === 'done' && (
         <div className="text-center py-6 space-y-4">
           <div className="w-16 h-16 flex items-center justify-center mx-auto border border-ink bg-ink/5">
@@ -424,7 +630,9 @@ export function UploadModal() {
           </div>
           <div>
             <p className="text-heading-4 font-serif font-bold text-ink">Tải lên thành công!</p>
-            <p className="text-body-sm text-ink-lighter mt-1">Tài liệu của bạn đã được gửi và chờ phê duyệt.</p>
+            <p className="text-body-sm text-ink-lighter mt-1">
+              {isVideoUpload ? 'Bài giảng của bạn đã được đăng tải.' : 'Tài liệu của bạn đã được gửi và chờ phê duyệt.'}
+            </p>
           </div>
           <button onClick={closeModal} className="btn-primary">
             Đóng

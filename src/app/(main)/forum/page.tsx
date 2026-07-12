@@ -46,7 +46,7 @@ export default function ForumPage() {
       <div className="arionear-container py-12">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <h1 className="font-serif text-heading-1 md:text-display font-bold text-ink leading-[0.92] tracking-tight">
+            <h1 className="font-serif text-heading-1 font-bold text-ink leading-[0.92] tracking-tight">
               DIỄN ĐÀN
             </h1>
             <p className="subheading mt-1">Thảo luận và chia sẻ kiến thức cùng cộng đồng</p>

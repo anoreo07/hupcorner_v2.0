@@ -61,7 +61,7 @@ export default function VideoLecturesPage() {
   return (
     <div className="min-h-screen bg-paper">
       <div className="arionear-container py-12">
-        <h1 className="font-serif text-heading-1 md:text-display font-bold text-ink leading-[0.92] tracking-tight mb-2">
+        <h1 className="font-serif text-heading-1 font-bold text-ink leading-[0.92] tracking-tight mb-2">
           BÀI GIẢNG
         </h1>
         <p className="subheading mb-10">Video bài giảng dành cho sinh viên Dược</p>

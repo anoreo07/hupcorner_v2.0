@@ -96,7 +96,18 @@ export function Header({ onMenuToggle }: HeaderProps) {
         {/* Right: upload + auth */}
         <div className="flex items-center gap-3">
           <button
-            onClick={openModal}
+            onClick={() => {
+              if (!isLoggedIn) {
+                window.location.href = '/login';
+                return;
+              }
+              const role = user?.role;
+              if (role === 'PHARMACY_STUDENT' || role === 'ADMIN') {
+                openModal(null);
+              } else {
+                openModal('document');
+              }
+            }}
             className="flex items-center gap-2 bg-ink text-paper px-3 py-1.5 text-caption font-sans font-medium uppercase tracking-[0.08em] hover:bg-ink/90 transition-colors"
           >
             <Upload size={14} /> Tải lên
