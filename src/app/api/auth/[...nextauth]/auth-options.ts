@@ -151,8 +151,8 @@ export const authOptions: NextAuthOptions = {
         if ((user as any).avatar_url) token.avatar_url = (user as any).avatar_url;
         token.id = user.id;
       }
-      // Always refresh user data from DB to pick up role changes
-      if (token.email) {
+      // Always refresh user data from DB to pick up role changes (skip admin — not in DB)
+      if (token.email && token.role !== 'admin') {
         const supabase = getSupabaseAdmin();
         const { data: raw } = await (supabase.from('users') as any)
           .select('*')
