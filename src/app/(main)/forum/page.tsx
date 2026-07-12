@@ -17,9 +17,16 @@ export default function ForumPage() {
   const { data: session } = useSession();
   const [threads, setThreads] = useState<(ForumThread & { users?: User })[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCharacter, setShowCharacter] = useState(true);
+  const [fadingOut, setFadingOut] = useState(false);
 
   useEffect(() => {
     loadThreads();
+    const timer = setTimeout(() => {
+      setFadingOut(true);
+      setTimeout(() => setShowCharacter(false), 500);
+    }, 8000);
+    return () => clearTimeout(timer);
   }, []);
 
   const loadThreads = async () => {
@@ -93,6 +100,24 @@ export default function ForumPage() {
           )}
         </div>
       </div>
+
+      {/* Character chat bubble */}
+      {showCharacter && (
+        <div className={`fixed bottom-6 right-6 z-50 flex items-end gap-0 transition-all duration-500 ${fadingOut ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}>
+          <div className="relative bg-paper border-2 border-ink p-4 max-w-[260px] shadow-[4px_4px_0px_0px_#111]">
+            <p className="font-sans text-body-sm text-ink leading-relaxed">
+              Hãy sử dụng diễn đàn một cách văn minh nhé! {'\uD83D\uDE0A'}
+            </p>
+            <div className="absolute -right-[11px] bottom-3 w-0 h-0 border-t-[8px] border-t-transparent border-l-[12px] border-l-ink border-b-[8px] border-b-transparent" />
+            <div className="absolute -right-[9px] bottom-3 w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-paper border-b-[6px] border-b-transparent" />
+          </div>
+          <img
+            src="/character.png"
+            alt="Character"
+            className="w-28 h-28 object-contain -ml-[1px]"
+          />
+        </div>
+      )}
     </div>
   );
 }
