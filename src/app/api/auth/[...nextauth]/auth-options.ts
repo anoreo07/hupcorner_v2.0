@@ -151,7 +151,8 @@ export const authOptions: NextAuthOptions = {
         if ((user as any).avatar_url) token.avatar_url = (user as any).avatar_url;
         token.id = user.id;
       }
-      if (account?.provider && account.provider !== 'credentials' && account.provider !== 'admin-credentials') {
+      // Always refresh user data from DB to pick up role changes
+      if (token.email) {
         const supabase = getSupabaseAdmin();
         const { data: raw } = await (supabase.from('users') as any)
           .select('*')

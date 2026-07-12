@@ -12,9 +12,10 @@ import { Badge } from '@/components/ui/badge';
 import { DocumentWithMajor } from '@/types/database';
 import { InfoRow } from '@/components/editorial/info-row';
 import { StarRating } from '@/components/ui/star-rating';
-import { supabase } from '@/lib/supabase';
+import { supabase, getDocumentReviews } from '@/lib/supabase';
 import { downloadFileParallel } from '@/utils/file-chunking';
 import { toast } from 'react-hot-toast';
+import dayjs from 'dayjs';
 import { documentTypeLabels, documentTypeVariants } from '@/components/editorial/document-card';
 import { addBookmark, removeBookmark, recordDownload } from '@/lib/user';
 import type { User } from '@/types/database';
@@ -37,6 +38,7 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [feedbackText, setFeedbackText] = useState('');
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [documentReviews, setDocumentReviews] = useState<any[]>([]);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [loginAction, setLoginAction] = useState('');
   const lastIncrementedId = useRef<string | null>(null);
@@ -50,7 +52,17 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
     if (lastIncrementedId.current === document.id) return;
     lastIncrementedId.current = document.id;
     supabase.rpc('increment_view_count', { doc_id: document.id });
+    loadReviews();
   }, [document.id]);
+
+  const loadReviews = async () => {
+    try {
+      const reviews = await getDocumentReviews(document.title);
+      setDocumentReviews(reviews);
+    } catch {
+      // silent
+    }
+  };
 
   const requireLogin = (action: string) => {
     if (!isLoggedIn) {
@@ -145,6 +157,23 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
     try {
       const ipResponse = await fetch('https://api.ipify.org?format=json');
       const { ip } = await ipResponse.json();
+
+      // Rate limit: max 5 reviews per minute per document per IP
+      const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
+      const { count, error: countError } = await supabase
+        .from('site_reviews')
+        .select('*', { count: 'exact', head: true })
+        .eq('title', `Đánh giá: ${document.title}`)
+        .eq('ip_address', ip)
+        .gt('created_at', oneMinuteAgo);
+
+      if (countError) throw countError;
+      if (count && count >= 5) {
+        toast.error('Bạn đã gửi quá nhiều đánh giá. Vui lòng chờ 10 phút sau mới có thể đánh giá tiếp.');
+        setSubmittingFeedback(false);
+        return;
+      }
+
       await supabase.from('site_reviews').insert([{
         rating: feedbackRating,
         title: `Đánh giá: ${document.title}`,
@@ -155,6 +184,7 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
       toast.success('Cảm ơn bạn đã đánh giá!');
       setFeedbackRating(0);
       setFeedbackText('');
+      loadReviews();
     } catch (err: any) {
       toast.error(err.message || 'Gửi đánh giá thất bại');
     } finally {
@@ -277,7 +307,7 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
         <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-16">
           <InfoRow label="Môn học" value={document.subject_name || 'Đang cập nhật'} />
           <InfoRow label="Khoa" value={document.majors?.name || 'Đa khoa'} />
-          <InfoRow label="Học kỳ" value={document.academic_year ? `Năm ${document.academic_year}` : 'Đang cập nhật'} />
+          <InfoRow label="Học kỳ" value={document.academic_year ? `Năm ${document.academic_year}` : 'Không có'} />
           <InfoRow label="Loại tài liệu" value={
             <Badge variant={documentTypeVariants[document.document_type]}>{documentTypeLabels[document.document_type] || 'Khác'}</Badge>
           } />
@@ -338,6 +368,27 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
         >
           {submittingFeedback ? 'Đang gửi...' : 'Gửi đánh giá'}
         </button>
+
+        {documentReviews.length > 0 && (
+          <div className="mt-8 space-y-4">
+            <p className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">
+              CÓ {documentReviews.length} ĐÁNH GIÁ
+            </p>
+            {documentReviews.map((review) => (
+              <div key={review.id} className="border border-ink/20 p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <StarRating value={review.rating} size={14} />
+                  <span className="font-mono text-meta text-ink-lighter">
+                    {dayjs(review.created_at).format('DD/MM/YYYY')}
+                  </span>
+                </div>
+                {review.content && review.content !== 'Không có nhận xét' && (
+                  <p className="text-body-sm text-ink-light">{review.content}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Tài liệu liên quan */}

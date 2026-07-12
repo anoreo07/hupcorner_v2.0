@@ -259,6 +259,22 @@ export default function ProfilePage() {
               </div>
             )}
 
+            {/* Box 1: Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="border-2 border-ink bg-paper p-5 text-center">
+                <p className="text-heading-3 font-serif font-bold text-ink">{downloads.length}</p>
+                <p className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter mt-1">Lượt tải</p>
+              </div>
+              <div className="border-2 border-ink bg-paper p-5 text-center">
+                <p className="text-heading-3 font-serif font-bold text-ink">{bookmarks.length}</p>
+                <p className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter mt-1">Đã lưu</p>
+              </div>
+              <div className="border-2 border-ink bg-paper p-5 text-center">
+                <p className="text-heading-3 font-serif font-bold text-ink">{uploads.length}</p>
+                <p className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter mt-1">Đã đóng góp</p>
+              </div>
+            </div>
+
             {/* Box 2: Edit profile */}
             <div className="border-2 border-ink bg-paper p-6 md:p-8">
               <h2 className="font-serif text-heading-3 font-bold text-ink mb-6">Cập nhật hồ sơ cá nhân</h2>

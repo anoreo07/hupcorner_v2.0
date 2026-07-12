@@ -216,6 +216,17 @@ export async function getSiteReviews() {
   return data;
 }
 
+export async function getDocumentReviews(documentTitle: string) {
+  const prefix = `Đánh giá: ${documentTitle}`;
+  const { data, error } = await supabase
+    .from('site_reviews')
+    .select('*')
+    .eq('title', prefix)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
 export async function submitSiteReview(review: {
   rating: number;
   title: string;

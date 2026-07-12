@@ -56,6 +56,10 @@ export function DocumentCard({ doc, index }: DocumentCardProps) {
 
       <p className="text-body-sm text-ink-lighter mb-6">{doc.majors?.name || 'Đa khoa'}</p>
 
+      {doc.description && (
+        <p className="text-body-sm text-ink-lighter/70 mb-4 line-clamp-2">{doc.description}</p>
+      )}
+
       <div className="flex items-center justify-between pt-4 border-t border-ink/20">
         <div className="flex flex-col gap-1">
           <span className="font-mono text-meta uppercase tracking-[0.1em] text-ink-lighter">

@@ -5,11 +5,21 @@ import { useSession } from 'next-auth/react';
 import { Dialog } from '@/components/ui/dialog';
 import { useUploadModal } from '@/hooks/use-upload-modal';
 import { uploadFileWithChunking, needsChunking, calculateChunks } from '@/utils/file-chunking';
-import { uploadDocument } from '@/lib/supabase';
-import { Upload, File, X, Check, AlertCircle, Loader2 } from 'lucide-react';
-import type { DocumentType } from '@/types/database';
+import { uploadDocument, getMajors, getSubjects } from '@/lib/supabase';
+import { Upload, File, X, Check, Loader2, Search } from 'lucide-react';
+import type { DocumentType, Major, Subject } from '@/types/database';
 
 type Step = 'form' | 'done';
+
+const DESC_MAX_LENGTH = 150;
+
+function isValidAcademicYear(value: string): boolean {
+  const match = value.match(/^(\d{4})-(\d{4})$/);
+  if (!match) return false;
+  const start = parseInt(match[1], 10);
+  const end = parseInt(match[2], 10);
+  return end === start + 1;
+}
 
 export function UploadModal() {
   const { data: session } = useSession();
@@ -28,12 +38,21 @@ export function UploadModal() {
 
   const [title, setTitle] = useState('');
   const [documentType, setDocumentType] = useState<DocumentType>('OTHER');
-  const [subjectName, setSubjectName] = useState('');
   const [academicYear, setAcademicYear] = useState('');
+  const [academicYearError, setAcademicYearError] = useState('');
   const [lecturerName, setLecturerName] = useState('');
   const [description, setDescription] = useState('');
   const [anonymous, setAnonymous] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const [majors, setMajors] = useState<Major[]>([]);
+  const [selectedMajorId, setSelectedMajorId] = useState('');
+
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [subjectSearch, setSubjectSearch] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
+  const subjectSearchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -44,14 +63,35 @@ export function UploadModal() {
       setUploadMessage('');
       setTitle('');
       setDocumentType('OTHER');
-      setSubjectName('');
+      setSelectedMajorId('');
+      setSelectedSubject(null);
+      setSubjectSearch('');
       setAcademicYear('');
+      setAcademicYearError('');
       setLecturerName('');
       setDescription('');
       setAnonymous(false);
       setSubmitting(false);
+      getMajors().then(setMajors).catch(() => {});
+      getSubjects().then(setSubjects).catch(() => {});
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (subjectSearchRef.current && !subjectSearchRef.current.contains(e.target as Node)) {
+        setShowSubjectDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const filteredSubjects = subjects.filter(
+    (s) =>
+      s.name.toLowerCase().includes(subjectSearch.toLowerCase()) ||
+      s.code.toLowerCase().includes(subjectSearch.toLowerCase())
+  );
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
@@ -73,9 +113,22 @@ export function UploadModal() {
     if (inputRef.current) inputRef.current.value = '';
   };
 
+  const handleAcademicYearChange = (value: string) => {
+    setAcademicYear(value);
+    if (value && !isValidAcademicYear(value)) {
+      setAcademicYearError('Định dạng không hợp lệ. VD: 2024-2025');
+    } else {
+      setAcademicYearError('');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !selectedFile) return;
+    if (academicYear && !isValidAcademicYear(academicYear)) {
+      setAcademicYearError('Định dạng không hợp lệ. VD: 2024-2025');
+      return;
+    }
     setSubmitting(true);
     setUploadStatus('uploading');
 
@@ -125,7 +178,9 @@ export function UploadModal() {
         file_name: selectedFile.name,
         file_size: selectedFile.size,
         mime_type: ext ? (mimeMap[ext] || null) : null,
-        subject_name: subjectName || null,
+        major_id: selectedMajorId || null,
+        subject_id: selectedSubject?.id || null,
+        subject_name: selectedSubject?.name || null,
         academic_year: academicYear || null,
         lecturer_name: lecturerName || null,
         description: description || null,
@@ -155,7 +210,6 @@ export function UploadModal() {
     >
       {step === 'form' && (
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* File selection */}
           <div>
             {!selectedFile ? (
               <div
@@ -211,7 +265,6 @@ export function UploadModal() {
             )}
           </div>
 
-          {/* Metadata form */}
           <div className="grid grid-cols-2 gap-x-6 gap-y-4">
             <div className="col-span-2 space-y-1.5">
               <label className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">Tiêu đề *</label>
@@ -230,13 +283,76 @@ export function UploadModal() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">Tên môn học</label>
-              <input type="text" value={subjectName} onChange={(e) => setSubjectName(e.target.value)} className="input-field" placeholder="VD: Toán cao cấp" />
+              <label className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">Khoa</label>
+              <select
+                value={selectedMajorId}
+                onChange={(e) => setSelectedMajorId(e.target.value)}
+                className="select-field"
+              >
+                <option value="">-- Chọn khoa --</option>
+                {majors.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="col-span-2 space-y-1.5">
+              <label className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">Môn học</label>
+              <div className="relative" ref={subjectSearchRef}>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-lighter" size={16} strokeWidth={1.5} />
+                  <input
+                    type="text"
+                    value={selectedSubject ? selectedSubject.name : subjectSearch}
+                    onChange={(e) => { setSubjectSearch(e.target.value); setSelectedSubject(null); setShowSubjectDropdown(true); }}
+                    onFocus={() => setShowSubjectDropdown(true)}
+                    className="input-field pl-10"
+                    placeholder="Tìm môn học..."
+                  />
+                  {selectedSubject && (
+                    <button
+                      type="button"
+                      onClick={() => { setSelectedSubject(null); setSubjectSearch(''); }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-lighter hover:text-ink"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+                {showSubjectDropdown && !selectedSubject && (
+                  <div className="absolute z-10 mt-1 w-full border border-ink bg-paper max-h-[200px] overflow-y-auto">
+                    {filteredSubjects.length === 0 ? (
+                      <div className="p-3 text-body-sm text-ink-lighter">Không tìm thấy môn học</div>
+                    ) : (
+                      filteredSubjects.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => { setSelectedSubject(s); setShowSubjectDropdown(false); }}
+                          className="w-full text-left p-3 hover:bg-paper-light transition-colors"
+                        >
+                          <p className="font-mono text-meta text-ink-lighter">{s.code}</p>
+                          <p className="text-body-sm text-ink font-medium">{s.name}</p>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="space-y-1.5">
               <label className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">Năm học</label>
-              <input type="text" value={academicYear} onChange={(e) => setAcademicYear(e.target.value)} className="input-field" placeholder="2024-2025" />
+              <input
+                type="text"
+                value={academicYear}
+                onChange={(e) => handleAcademicYearChange(e.target.value)}
+                className={`input-field ${academicYearError ? 'border-red' : ''}`}
+                placeholder="VD: 2024-2025"
+              />
+              {academicYearError && (
+                <p className="font-sans text-caption text-red">{academicYearError}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -245,8 +361,16 @@ export function UploadModal() {
             </div>
 
             <div className="col-span-2 space-y-1.5">
-              <label className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">Mô tả</label>
-              <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="input-field min-h-[80px]" placeholder="Mô tả ngắn về tài liệu" />
+              <label className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">
+                Mô tả ({description.length}/{DESC_MAX_LENGTH})
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value.slice(0, DESC_MAX_LENGTH))}
+                className="input-field min-h-[80px]"
+                placeholder="Mô tả ngắn về tài liệu (tối đa 150 ký tự)"
+                maxLength={DESC_MAX_LENGTH}
+              />
             </div>
 
             <div className="col-span-2 space-y-1.5">
