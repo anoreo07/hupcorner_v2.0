@@ -197,6 +197,7 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
   const downloadCount = document.download_count || 0;
   const viewCount = document.view_count || 0;
   const previewUrl = getPreviewUrl();
+  const isZipFile = document.mime_type === 'application/zip' || document.file_name?.toLowerCase().endsWith('.zip');
 
   return (
     <div className="arionear-container py-6 md:py-10">
@@ -224,25 +225,45 @@ export default function DocumentDetailClient({ document, relatedDocuments }: Doc
         </p>
       </div>
 
-      {/* PDF Preview — Full Width */}
+      {/* Preview Section */}
       <div className="relative bg-ink/[0.02] border border-ink/20 overflow-hidden min-h-[500px] md:min-h-[700px] flex items-center justify-center group mb-0">
-        {loadingPreview && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-paper/80">
-            <div className="w-8 h-8 border-2 border-ink/10 border-t-ink animate-spin mb-4" />
-            <p className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">Đang tải...</p>
+        {isZipFile ? (
+          <div className="flex flex-col items-center justify-center p-10 text-center">
+            <FileText size={64} className="text-ink-lighter mb-6" strokeWidth={1} />
+            <h3 className="font-serif text-heading-3 font-bold text-ink mb-3">Nhiều nội dung</h3>
+            <p className="text-body text-ink-lighter max-w-md mb-6">
+              Tài liệu này chứa nhiều nội dung. Bạn hãy tải về để xem nhé!
+            </p>
+            <button
+              onClick={handleDownload}
+              disabled={downloading}
+              className="btn-primary inline-flex items-center gap-2"
+            >
+              <Download size={16} strokeWidth={1.5} className={downloading ? 'animate-bounce' : ''} />
+              Tải xuống ngay
+            </button>
           </div>
+        ) : (
+          <>
+            {loadingPreview && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-paper/80">
+                <div className="w-8 h-8 border-2 border-ink/10 border-t-ink animate-spin mb-4" />
+                <p className="font-mono text-meta uppercase tracking-[0.15em] text-ink-lighter">Đang tải...</p>
+              </div>
+            )}
+            <div
+              className="transition-transform duration-300 ease-out flex justify-center w-full h-full"
+              style={{ transform: `scale(${zoom})` }}
+            >
+              <iframe
+                src={previewUrl}
+                className="w-full h-[500px] md:h-[700px] border-none bg-white"
+                title={document.title}
+                onLoad={() => setLoadingPreview(false)}
+              />
+            </div>
+          </>
         )}
-        <div
-          className="transition-transform duration-300 ease-out flex justify-center w-full h-full"
-          style={{ transform: `scale(${zoom})` }}
-        >
-          <iframe
-            src={previewUrl}
-            className="w-full h-[500px] md:h-[700px] border-none bg-white"
-            title={document.title}
-            onLoad={() => setLoadingPreview(false)}
-          />
-        </div>
       </div>
 
       {/* Toolbar */}

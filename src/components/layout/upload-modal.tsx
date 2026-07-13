@@ -6,8 +6,11 @@ import { Dialog } from '@/components/ui/dialog';
 import { useUploadModal } from '@/hooks/use-upload-modal';
 import { uploadFileWithChunking, needsChunking, calculateChunks } from '@/utils/file-chunking';
 import { uploadDocument, getMajors, getSubjects } from '@/lib/supabase';
-import { Upload, File, X, Check, Loader2, Search, BookOpen, Video, ArrowLeft } from 'lucide-react';
+import { Upload, File as FileIcon, X, Check, Loader2, Search, BookOpen, Video, ArrowLeft, Image, Archive } from 'lucide-react';
 import type { DocumentType, Major, Subject } from '@/types/database';
+import JSZip from 'jszip';
+import { PDFDocument } from 'pdf-lib';
+import { UploadGuideModal } from '@/components/ui/UploadGuideModal';
 
 type Step = 'choose' | 'document-form' | 'video-form' | 'done';
 
@@ -38,7 +41,7 @@ export function UploadModal() {
   const [step, setStep] = useState<Step>('choose');
   const [isVideoUpload, setIsVideoUpload] = useState(false);
 
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [uploadMessage, setUploadMessage] = useState('');
@@ -51,6 +54,7 @@ export function UploadModal() {
   const [description, setDescription] = useState('');
   const [anonymous, setAnonymous] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showUploadGuide, setShowUploadGuide] = useState(false);
 
   const [majors, setMajors] = useState<Major[]>([]);
   const [selectedMajorId, setSelectedMajorId] = useState('');
@@ -80,8 +84,15 @@ export function UploadModal() {
     }
   }, [isOpen, uploadType]);
 
+  useEffect(() => {
+    if (step === 'document-form') {
+      const hasSeen = sessionStorage.getItem('hup_corner_upload_guide_shown');
+      if (!hasSeen) setShowUploadGuide(true);
+    }
+  }, [step]);
+
   function resetForm() {
-    setSelectedFile(null);
+    setSelectedFiles([]);
     setUploadProgress(0);
     setUploadStatus('idle');
     setUploadMessage('');
@@ -124,8 +135,8 @@ export function UploadModal() {
       s.code.toLowerCase().includes(subjectSearch.toLowerCase())
   );
 
-  const handleFileSelect = (file: File) => {
-    setSelectedFile(file);
+  const handleFileSelect = (files: File[]) => {
+    setSelectedFiles(files);
     setUploadStatus('idle');
     setUploadProgress(0);
     setUploadMessage('');
@@ -134,13 +145,13 @@ export function UploadModal() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileSelect(file);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) handleFileSelect(files);
   };
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleFileSelect(file);
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length > 0) handleFileSelect(files);
     if (inputRef.current) inputRef.current.value = '';
   };
 
@@ -153,9 +164,43 @@ export function UploadModal() {
     }
   };
 
+  function isImageFile(file: File): boolean {
+    return /\.(jpg|jpeg|png|webp|gif)$/i.test(file.name);
+  }
+
+  async function processMultipleFiles(files: File[]): Promise<{ blob: Blob; fileName: string; mimeType: string }> {
+    const allImages = files.every(isImageFile);
+
+    if (allImages) {
+      setUploadMessage('Đang tạo file PDF từ ảnh...');
+      const pdfDoc = await PDFDocument.create();
+      for (const file of files) {
+        const buffer = await file.arrayBuffer();
+        const isPng = file.type === 'image/png' || file.name.toLowerCase().endsWith('.png');
+        const image = isPng
+          ? await pdfDoc.embedPng(buffer)
+          : await pdfDoc.embedJpg(buffer);
+        const page = pdfDoc.addPage([image.width, image.height]);
+        page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
+      }
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
+      return { blob, fileName: `${title}.pdf`, mimeType: 'application/pdf' };
+    }
+
+    setUploadMessage('Đang nén file...');
+    const zip = new JSZip();
+    for (const file of files) {
+      const buffer = await file.arrayBuffer();
+      zip.file(file.name, buffer);
+    }
+    const blob = await zip.generateAsync({ type: 'blob' });
+    return { blob, fileName: `${title}.zip`, mimeType: 'application/zip' };
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !selectedFile) return;
+    if (!title || selectedFiles.length === 0) return;
     if (academicYear && !isValidAcademicYear(academicYear)) {
       setAcademicYearError('Định dạng không hợp lệ. VD: 2024-2025');
       return;
@@ -164,6 +209,29 @@ export function UploadModal() {
     setUploadStatus('uploading');
 
     try {
+      let uploadFile: File;
+      let actualFileName: string;
+      let actualMimeType: string | null;
+
+      if (selectedFiles.length === 1) {
+        uploadFile = selectedFiles[0];
+        actualFileName = uploadFile.name;
+        const ext = uploadFile.name.split('.').pop()?.toLowerCase();
+        const mimeMap: Record<string, string> = {
+          pdf: 'application/pdf', doc: 'application/msword',
+          docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          ppt: 'application/vnd.ms-powerpoint',
+          pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+        };
+        actualMimeType = ext ? (mimeMap[ext] || null) : null;
+      } else {
+        const { blob, fileName, mimeType } = await processMultipleFiles(selectedFiles);
+        uploadFile = new File([blob], fileName, { type: mimeType });
+        actualFileName = fileName;
+        actualMimeType = mimeType;
+      }
+
       const channelId = process.env.NEXT_PUBLIC_TELEGRAM_CHANNEL_ID || '-1003810443754';
       let botIndex = 1;
       try {
@@ -174,14 +242,14 @@ export function UploadModal() {
         }
       } catch {}
 
-      const isChunked = needsChunking(selectedFile.size);
-      const chunkCount = calculateChunks(selectedFile.size);
+      const isChunked = needsChunking(uploadFile.size);
+      const chunkCount = calculateChunks(uploadFile.size);
 
       if (isChunked) {
         setUploadMessage(`Chia nhỏ file thành ${chunkCount} phần...`);
       }
 
-      const fileIds = await uploadFileWithChunking(selectedFile, channelId, (progress, message) => {
+      const fileIds = await uploadFileWithChunking(uploadFile, channelId, (progress, message) => {
         setUploadProgress(progress);
         setUploadMessage(message || (isChunked ? `Đang upload... (${progress}%)` : `Đang upload... (${progress}%)`));
       }, botIndex);
@@ -192,23 +260,14 @@ export function UploadModal() {
       setUploadProgress(100);
       setUploadMessage('Đang lưu thông tin...');
 
-      const ext = selectedFile.name.split('.').pop()?.toLowerCase();
-      const mimeMap: Record<string, string> = {
-        pdf: 'application/pdf', doc: 'application/msword',
-        docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        ppt: 'application/vnd.ms-powerpoint',
-        pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
-      };
-
       await uploadDocument({
         title,
         document_type: documentType,
         storage_provider: 'telegram',
         file_path: fileId,
-        file_name: selectedFile.name,
-        file_size: selectedFile.size,
-        mime_type: ext ? (mimeMap[ext] || null) : null,
+        file_name: actualFileName,
+        file_size: uploadFile.size,
+        mime_type: actualMimeType,
         major_id: selectedMajorId || null,
         subject_id: selectedSubject?.id || null,
         subject_name: selectedSubject?.name || null,
@@ -272,7 +331,7 @@ export function UploadModal() {
     }
   };
 
-  const canSubmit = selectedFile && title && !submitting;
+  const canSubmit = selectedFiles.length > 0 && title && !submitting;
 
   const modalTitle = step === 'done' ? 'Tải lên thành công'
     : step === 'choose' ? 'Bạn muốn đóng góp?'
@@ -416,7 +475,7 @@ export function UploadModal() {
           )}
 
           <div>
-            {!selectedFile ? (
+            {selectedFiles.length === 0 ? (
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
@@ -429,24 +488,37 @@ export function UploadModal() {
                 <Upload size={32} className="mx-auto text-ink-lighter mb-3" />
                 <p className="text-body-sm text-ink font-medium mb-1">Kéo thả file vào đây</p>
                 <p className="font-mono text-meta uppercase tracking-wider text-ink-lighter">hoặc nhấp để chọn file</p>
-                <input ref={inputRef} type="file" className="hidden" onChange={handleInput} />
+                <p className="font-mono text-meta text-ink-lighter mt-1">Có thể chọn nhiều file</p>
+                <input ref={inputRef} type="file" className="hidden" multiple onChange={handleInput} />
               </div>
             ) : (
-              <div className="flex items-center gap-3 border border-border-light p-4">
-                <File size={20} className="text-ink-lighter shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-body-sm text-ink font-medium truncate">{selectedFile.name}</p>
-                  <p className="font-mono text-meta text-ink-lighter">
-                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                </div>
+              <div className="space-y-2">
+                {selectedFiles.map((file, index) => (
+                  <div key={index} className="flex items-center gap-3 border border-border-light p-3">
+                    <FileIcon size={18} className="text-ink-lighter shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-body-sm text-ink font-medium truncate">{file.name}</p>
+                      <p className="font-mono text-meta text-ink-lighter">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFiles(prev => prev.filter((_, i) => i !== index))}
+                      className="text-ink-lighter hover:text-ink shrink-0"
+                      disabled={submitting}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
                 <button
                   type="button"
-                  onClick={() => setSelectedFile(null)}
-                  className="text-ink-lighter hover:text-ink shrink-0"
+                  onClick={() => { setSelectedFiles([]); if (inputRef.current) inputRef.current.value = ''; }}
+                  className="font-mono text-meta text-ink-lighter hover:text-ink"
                   disabled={submitting}
                 >
-                  <X size={16} />
+                  Xoá tất cả
                 </button>
               </div>
             )}
@@ -621,6 +693,14 @@ export function UploadModal() {
           </div>
         </form>
       )}
+
+      <UploadGuideModal
+        isOpen={showUploadGuide}
+        onClose={() => {
+          setShowUploadGuide(false);
+          sessionStorage.setItem('hup_corner_upload_guide_shown', 'true');
+        }}
+      />
 
       {/* Step: Done (success) */}
       {step === 'done' && (
